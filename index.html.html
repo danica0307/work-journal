@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yuyen's 工坊經營與冒險</title>
+    <style>
+        :root {
+            --bg-color: #f4ece1;
+            --main-wood: #8B5A2B;
+            --light-wood: #CD853F;
+            --dark-wood: #5C3A21;
+            --text-color: #3e2723;
+            --gold: #FFD700;
+            --xp-color: #4caf50;
+            --achievement-color: #e65100;
+            --future-color: #006064;
+            --shop-color: #2e7d32;
+            --timer-color: #d32f2f;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, "Microsoft JhengHei";
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1, h2, h3 { margin-top: 0; color: var(--dark-wood); }
+
+        /* 頂部狀態欄 */
+        .status-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, var(--main-wood), var(--dark-wood));
+            color: white;
+            padding: 15px 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 1100px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        .user-info { font-size: 1.2rem; font-weight: bold; }
+        .bars { flex-grow: 1; margin: 0 20px; max-width: 400px; }
+        .bar-bg { background-color: rgba(255,255,255,0.2); border-radius: 8px; height: 18px; margin-bottom: 5px; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.3s ease; }
+        #xp-bar { background-color: var(--xp-color); }
+        .bar-text { position: absolute; width: 100%; text-align: center; font-size: 0.75rem; color: white; line-height: 18px; font-weight: bold; }
+        .currency { font-size: 1.3rem; font-weight: bold; color: var(--gold); text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+
+        /* 主要區塊佈局 */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            margin-bottom: 20px;
+        }
+
+        .full-layout { width: 100%; max-width: 1100px; }
+
+        @media (max-width: 850px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 2px solid #e0d0b8;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        /* 表單與按鈕 */
+        .form-group { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        input, button, select, textarea { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95rem; font-family: inherit; }
+        input { flex-grow: 1; }
+        .num-input { width: 60px; flex-grow: 0; }
+        button { background-color: var(--light-wood); color: white; border: none; cursor: pointer; font-weight: bold; transition: background 0.2s, opacity 0.3s; }
+        button:hover { background-color: var(--main-wood); }
+
+        /* 任務列表與項目樣式 */
+        .task-list, .order-list, .future-list, .shop-list, .timer-list { list-style: none; padding: 0; margin: 0; }
+        .task-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 8px; cursor: grab; }
+        .task-item:hover { background-color: #faf6f0; }
+        .task-item:active { cursor: grabbing; }
+        
+        .task-main-row { display: flex; justify-content: space-between; align-items: center; }
+        .task-info { display: flex; flex-direction: column; flex-grow: 1; margin-right: 10px; }
+        .task-name { font-weight: bold; font-size: 1.05rem; }
+        .task-reward { font-size: 0.8rem; color: #888; margin-top: 2px; }
+
+        /* 子任務區塊樣式 */
+        .subtask-container { background: #fdfbf7; border: 1px dashed #d7ccc8; border-radius: 6px; padding: 8px 12px; margin-top: 4px; }
+        .subtask-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #efebe9; cursor: grab; }
+        .subtask-item:last-child { border-bottom: none; }
+        .subtask-item.done { display: none; }
+        .subtask-label { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; cursor: pointer; width: 100%; }
+        .subtask-label input { flex-grow: 0; cursor: pointer; transform: scale(1.1); }
+        
+        .btn-add-sub { background-color: #78909c; font-size: 0.8rem; padding: 4px 10px; }
+        .btn-add-sub:hover { background-color: #546e7a; }
+        .btn-del-sub { background: none; border: none; color: #c62828; cursor: pointer; font-size: 0.85rem; padding: 2px 5px; }
+        .btn-del-sub:hover { text-decoration: underline; }
+        .btn-del-task { background-color: #e57373; font-size: 0.75rem; padding: 2px 6px; margin-left: 5px; border-radius: 4px;}
+        .btn-del-task:hover { background-color: #ef5350; }
+
+        /* 分隔線專用樣式 */
+        .wood-divider {
+            height: 4px;
+            background: repeating-linear-gradient(90deg, #e0d0b8, #CD853F 40px, #e0d0b8 80px);
+            border-radius: 2px;
+            margin: 25px 0;
+            opacity: 0.7;
+        }
+
+        /* 未來冒險與補給商店樣式 */
+        .future-section, .shop-section, .timer-section { margin-top: 10px; }
+        .future-item, .shop-item, .timer-item {
+            background: #f7f9fa;
+            border: 1px solid #cfd8dc;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+        }
+        .future-item:active, .shop-item:active, .timer-item:active, .order-item:active { cursor: grabbing; }
+        .future-item { border-left: 4px solid var(--future-color); }
+        .shop-item { border-left: 4px solid var(--shop-color); background: #f1f8e9; border-color: #c5e1a5;}
+        
+        /* 限時挑戰卡片樣式 */
+        .timer-item {
+            border-left: 5px solid var(--timer-color);
+            background: #fff8f8;
+            border-color: #ffcdd2;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .timer-header { display: flex; justify-content: space-between; align-items: center; }
+        .timer-title { font-weight: bold; font-size: 1.05rem; color: #b71c1c; }
+        .timer-countdown { font-family: monospace; font-size: 1.15rem; font-weight: bold; color: #d32f2f; background: #ffebee; padding: 2px 8px; border-radius: 4px; border: 1px solid #ffcdd2;}
+        .timer-details { display: flex; justify-content: space-between; font-size: 0.85rem; color: #555; background: #fff; padding: 6px 10px; border-radius: 4px; }
+        .timer-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+        .future-content, .shop-content { font-weight: bold; color: #263238; font-size: 0.95rem; word-break: break-all; }
+        .shop-cost { color: #e65100; font-weight: bold; margin-left: 5px; }
+        
+        .future-actions, .shop-actions, .move-btn-group { display: flex; gap: 4px; align-items: center; }
+        .btn-move { background-color: #8d6e63; font-size: 0.75rem; padding: 3px 7px; border-radius: 4px; }
+        .btn-move:hover { background-color: #6d4c41; }
+        .btn-edit { background-color: #ffb74d; font-size: 0.8rem; padding: 4px 8px; }
+        .btn-edit:hover { background-color: #ffa726; }
+        .btn-cancel { background-color: #ef5350; font-size: 0.8rem; padding: 4px 8px; }
+        .btn-cancel:hover { background-color: #e53935; }
+        .btn-buy { background-color: var(--shop-color); font-size: 0.85rem; padding: 6px 12px; }
+        .btn-buy:hover { background-color: #1b5e20; }
+
+        /* 拖曳狀態樣式 */
+        .dragging { opacity: 0.4; border: 2px dashed #8B5A2B !important; }
+
+        /* 日誌列表撤銷減號按鈕樣式 */
+        .log-list { list-style: none !important; padding: 0; margin: 0; }
+        .log-item { 
+            display: flex; 
+            align-items: flex-start; 
+            margin-bottom: 10px; 
+            line-height: 1.6; 
+            list-style-type: none !important; 
+        }
+        
+        .btn-undo-minus {
+            background-color: #e57373;
+            color: white;
+            border: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 12px;
+            margin-top: 2px;
+            flex-shrink: 0;
+            font-weight: bold;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-undo-minus:hover {
+            background-color: #d32f2f;
+            transform: scale(1.1);
+        }
+
+        /* 成就看板專用樣式 */
+        .achievement-section { margin-top: 20px; padding-top: 15px; border-top: 3px double #e0d0b8; }
+        .achievement-card { background: linear-gradient(135deg, #fffde7, #fff9c4); border: 1px solid #fff59d; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;}
+        .achievement-info { display: flex; flex-direction: column; }
+        .achievement-title { font-weight: bold; color: var(--achievement-color); font-size: 1rem; }
+
+        /* 訂單列表樣式 */
+        .order-item { background: #fffdf9; border: 1px solid #e8dfd0; border-radius: 8px; padding: 15px; margin-bottom: 12px; cursor: grab; }
+        .order-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px; color: var(--dark-wood); }
+        .order-progress-bg { background: #e0e0e0; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
+        .order-progress-fill { background: linear-gradient(90deg, var(--light-wood), var(--main-wood)); width: 0%; height: 100%; transition: width 0.3s; }
+        .order-actions { display: flex; justify-content: flex-end; gap: 8px; align-items: center; }
+
+        .btn-success { background-color: #4caf50; } .btn-success:hover { background-color: #388e3c; }
+        .btn-danger { background-color: #f44336; } .btn-danger:hover { background-color: #d32f2f; }
+        .btn-secondary { background-color: #78909c; } .btn-secondary:hover { background-color: #546e7a; }
+        .btn-premium { background-color: #ff9800; color: white; } .btn-premium:hover { background-color: #f57c00; }
+
+        /* 月曆專用樣式 */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .weekday { font-weight: bold; background-color: #e8dfd0; padding: 5px 0; border-radius: 4px; }
+        .day { background-color: #fcfbf9; border: 1px solid #eee; min-height: 55px; padding: 5px; border-radius: 6px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: background 0.2s; }
+        .day:hover { background-color: #faf6f0; border-color: var(--light-wood); }
+        .day.today { border: 2px solid var(--main-wood); background-color: #fffde7; }
+        .day-num { font-weight: bold; font-size: 0.9rem; text-align: left; }
+        .day-badges { font-size: 0.75rem; text-align: center; margin-top: 2px; }
+        
+        .log-box { margin-top: 15px; padding: 12px; background: #fafafa; border-radius: 8px; border-left: 4px solid var(--main-wood); font-size: 0.95rem; }
+        .saved-plan-detail { background: #fffdf8; border: 1px solid #e0d0b8; border-radius: 8px; padding: 14px; margin: 12px 0; }
+        .saved-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .saved-plan-grid > div { background: #fff; border: 1px solid #eee2d3; border-radius: 6px; padding: 10px; min-width: 0; }
+        .saved-plan-grid p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; }
+        .saved-schedule-row { display: grid; grid-template-columns: 145px minmax(0, 1fr); gap: 10px; padding: 8px 10px; margin: 6px 0; background: #fff; border: 1px solid #eee2d3; border-radius: 6px; }
+        .saved-schedule-row span { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .day.has-plan { border-color: #CD853F; }
+        .day.selected-day { box-shadow: inset 0 0 0 2px #6d8f63; background: #f1f8ed; }
+        .day.plan-done { background-image: linear-gradient(135deg, #f0f8ed, #fff); }
+        .calendar-actions { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; }
+        .calendar-actions button { font-size:.8rem; padding:6px 9px; }
+        .plan-status-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:8px 0 12px; }
+        .plan-status-pill { display:inline-block; padding:4px 9px; border-radius:999px; background:#eee; font-size:.85rem; }
+        .plan-status-pill.done { background:#e1f2dc; color:#2f6d35; }
+        .plan-status-pill.progress { background:#fff0ce; color:#865d00; }
+        .plan-note { white-space:pre-wrap; overflow-wrap:anywhere; }
+        @media (max-width: 760px) { .calendar-header { align-items:flex-start; flex-direction:column; } .calendar-actions { justify-content:flex-start; } }
+        @media (max-width: 600px) { .saved-plan-grid { grid-template-columns: 1fr; } .saved-schedule-row { grid-template-columns: 1fr; gap: 4px; } }
+
+        /* 浮動文字特效 */
+        .floating-text { position: fixed; color: var(--gold); font-weight: bold; font-size: 1.5rem; pointer-events: none; animation: floatUp 1s ease-out forwards; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); z-index: 999; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
+
+        /* 每日計畫專用區塊樣式 */
+        .plan-box-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px; }
+        @media (max-width: 750px) { .plan-box-grid { grid-template-columns: 1fr; } }
+        .plan-card-item { background: #fffdf9; border: 1px solid #d7ccc8; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .plan-card-title { font-weight: bold; color: var(--main-wood); font-size: 0.95rem; }
+        .schedule-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; background: #faf6f0; padding: 8px 12px; border-radius: 6px; border: 1px solid #eee; }
+        .schedule-time { font-weight: bold; min-width: 130px; font-size: 0.95rem; color: var(--dark-wood); }
+        .schedule-row input { flex-grow: 1; background: #fff; }
+
+        .v2-panel { background:#fffdf8; border:1px solid #e0d0b8; border-radius:10px; padding:16px; margin:18px 0; }
+        .v2-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+        .v2-field { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+        .v2-field label { font-weight:700; }
+        .mood-options { display:grid; grid-template-columns:repeat(auto-fit,minmax(105px,1fr)); gap:8px; }
+        .mood-option { background:#fff; color:#3e2723; border:1px solid #e0d0b8; border-radius:8px; padding:10px 6px; text-align:center; cursor:pointer; }
+        .mood-option.selected { outline:3px solid #CD853F; background:#fff4df; }
+        .mood-option span { display:block; font-size:1.6rem; }
+        .v2-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; }
+        .v2-stat { background:#fff; border:1px solid #eadbc7; border-radius:8px; padding:12px; }
+        .v2-stat strong { display:block; font-size:1.4rem; color:#8B5A2B; }
+        .v2-badges { display:flex; flex-wrap:wrap; gap:8px; }
+        .v2-badge { border:1px solid #d7ccc8; border-radius:8px; padding:8px 10px; background:#fff; }
+        .v2-badge.locked { opacity:.45; filter:grayscale(1); }
+        .v2-record { padding:10px; border-bottom:1px solid #eee; }
+        .v2-record:last-child { border-bottom:0; }
+        .points-shop-section { margin-top:16px; padding:16px; border:2px solid #b8d3f5; border-radius:12px; background:#f7fbff; }
+        .points-shop-section h3 { color:#2859a8; }
+        .points-shop-list, .points-history-list { list-style:none; padding:0; margin:10px 0 0; }
+        .points-shop-item, .points-history-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px; margin:7px 0; background:#fff; border:1px solid #d8e5f5; border-radius:8px; }
+        .points-shop-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+        .points-cost { color:#2859a8; font-weight:bold; white-space:nowrap; }
+        .points-history-item { font-size:.9rem; align-items:flex-start; }
+        .v2-muted { color:#776b61; font-size:.9rem; }
+
+    </style>
+</head>
+<body>
+
+    <!-- 頂部狀態欄 -->
+    <div class="status-container">
+        <div class="user-info">
+            <div>yuyen 工坊主人</div>
+            <div id="level-display" style="font-size: 0.9rem; color: #ffe0b2;">LV. 1 基礎工匠</div>
+        </div>
+        <div class="bars">
+            <div class="bar-bg">
+                <div class="bar-text">經驗值 <span id="xp-text">0/100</span></div>
+                <div id="xp-bar" class="bar-fill"></div>
+            </div>
+        </div>
+        <div class="currency">🪙 金幣: <span id="gold-display">0</span></div>
+    </div>
+
+    <!-- 主要工作欄 -->
+    <div class="main-layout">
+        <!-- 左側：玩具訂單生產線、限時挑戰 與 未來冒險計畫 -->
+        <div class="card">
+            <h2>🛠️ 玩具鍛造生產線</h2>
+            <div class="form-group">
+                <input type="text" id="shop-name" placeholder="店家或鳥友名稱 (例：大安鳥店)">
+                <input type="text" id="toy-name" placeholder="玩具品名 (例：經典原木串)">
+                <input type="number" id="toy-qty" class="num-input" placeholder="數量" min="1" value="1">
+                <button onclick="addOrder()">接單</button>
+            </div>
+            <ul id="order-list" class="order-list"></ul>
+
+            <!-- 木紋質感分隔線 -->
+            <div class="wood-divider"></div>
+
+            <!-- ⏱️ 限時冒險挑戰區 -->
+            <div class="timer-section">
+                <h2>⏱️ 限時冒險挑戰</h2>
+                <p style="font-size: 0.8rem; color:#666; margin: -5px 0 10px 0;">設定專注時間！時間內完成獲獎，逾時未完將被扣款懲罰！</p>
+                <div class="form-group" style="background: #fff3e0; padding: 10px; border-radius: 8px; border: 1px dashed #ffb74d;">
+                    <input type="text" id="timer-title-input" placeholder="🎯 挑戰任務 (例：1小時內清完零件桌)" style="width: 100%;">
+                    <div style="display: flex; gap: 4px; width: 100%; align-items: center; margin-top: 5px;">
+                        <input type="number" id="timer-hour-input" class="num-input" placeholder="時" min="0" value="0">
+                        <span style="font-size: 0.85rem; font-weight: bold;">時</span>
+                        <input type="number" id="timer-min-input" class="num-input" placeholder="分" min="0" value="30">
+                        <span style="font-size: 0.85rem; font-weight: bold; margin-right: 4px;">分</span>
+                        
+                        <span style="font-size: 0.85rem; color: green; font-weight: bold;">🪙+</span>
+                        <input type="number" id="timer-reward-gold" class="num-input" placeholder="勝金" min="0" value="50" title="成功獎勵金幣">
+                        
+                        <span style="font-size: 0.85rem; color: red; font-weight: bold; margin-left: 2px;">🪙-</span>
+                        <input type="number" id="timer-penalty-gold" class="num-input" placeholder="敗金" min="0" value="30" title="失敗懲罰扣錢">
+                        
+                        <button onclick="addTimerChallenge()" style="background-color: var(--timer-color); margin-left: auto; white-space: nowrap;">🚀 開始倒數</button>
+                    </div>
+                </div>
+                <ul id="timer-challenge-list" class="timer-list"></ul>
+            </div>
+
+            <!-- 木紋質感分隔線 -->
+            <div class="wood-divider"></div>
+
+            <!-- 未來冒險計畫 -->
+            <div class="future-section">
+                <h2>🗺️ 未來冒險計畫</h2>
+                <p style="font-size: 0.8rem; color:#666; margin: -5px 0 10px 0;">在此填上您預期、規劃中，或是未來打算執行的各項工坊大計。</p>
+                <div class="form-group">
+                    <input type="text" id="future-plan-input" placeholder="✨ 預定要做的事... (例：打樣新色調E-ink圖案)">
+                    <button onclick="addFuturePlan()" style="background-color: var(--future-color);">寫入藍圖</button>
+                </div>
+                <ul id="future-plan-list" class="future-list"></ul>
+            </div>
+            
+            <!-- 木紋質感分隔線 -->
+            <div class="wood-divider"></div>
+
+            <!-- 🛒 工坊補給商店 -->
+            <div class="shop-section">
+                <h2>🛒 工坊補給商店</h2>
+                <p style="font-size: 0.8rem; color:#666; margin: -5px 0 10px 0;">上架您渴望的補給品，扣除辛苦賺取的金幣來犒賞自己吧！</p>
+                <div class="form-group">
+                    <input type="text" id="shop-item-input" placeholder="🎁 想要買的東西... (例：邪惡美味大雞排)">
+                    <input type="number" id="shop-cost-input" class="num-input" style="width:80px;" placeholder="金幣價格" min="1">
+                    <button onclick="addShopItem()" style="background-color: var(--shop-color);">上架貨架</button>
+                </div>
+                <ul id="shop-item-list" class="shop-list"></ul>
+            </div>
+        </div>
+
+        <!-- 右側：日常委託、自訂特別委託與成就系統 -->
+        <div class="card">
+            <h2>⚔️ 酒館委託布告欄</h2>
+            
+            <!-- 動態新增特別委託表單 -->
+            <div class="form-group" style="margin-top: 10px; background: #faf5ee; padding: 10px; border-radius: 8px; border: 1px dashed #CD853F;">
+                <input type="text" id="custom-task-name" placeholder="📜 懸賞新的特別委託... (例：搬運新原木進廠)">
+                <button onclick="addCustomTask()" style="background-color: var(--main-wood); white-space: nowrap;">發布委託</button>
+            </div>
+
+            <ul id="daily-task-list" class="task-list"></ul>
+
+            <!-- 🏆 當日工作成就與挑戰區 -->
+            <div class="achievement-section">
+                <h3>🏆 工坊當日成就與挑戰</h3>
+                <div class="achievement-card">
+                    <div class="achievement-info">
+                        <span class="achievement-title">⭐ 點擊解鎖今日特殊成就</span>
+                        <span style="font-size: 0.8rem; color:#666;">適合用來記錄今天突發的重大突破或光榮時刻！</span>
+                    </div>
+                    <button class="btn-premium" onclick="triggerManualAchievement(event)">達成成就</button>
+                </div>
+                <div id="auto-challenge-box" style="font-size: 0.85rem; color: #5c3a21; background: #f5f5f5; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #4caf50;">
+                    ⏳ <strong>今日冒險指標：</strong>今日已累計完成 <span id="challenge-count" style="font-weight:bold; color:#4caf50;">0</span> 個細項委託。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌟 新增獨立區塊：每日抗焦慮計畫與時間軸 -->
+    <div class="full-layout card" style="border: 2px dashed var(--main-wood); background: #fffcf7;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <h2 style="margin:0;">📝 每日抗焦慮計畫與時間軸</h2>
+            <button onclick="saveDailyPlan()" style="background-color: var(--main-wood); font-size: 0.85rem; padding: 6px 15px;">💾 儲存今日計畫</button>
+        </div>
+        <p style="font-size: 0.85rem; color:#666; margin-top:-10px; margin-bottom: 15px;">把繁雜事項分流，每天只要鎖定三件事與專注時段，找回心靈掌控感！</p>
+
+        <!-- 本日三件事 -->
+        <h3 style="font-size: 1.05rem; color: var(--dark-wood); margin-bottom: 8px;">🎯 本日三件事原則 (Rule of 3)</h3>
+        <div class="plan-box-grid">
+            <div class="plan-card-item">
+                <span class="plan-card-title">🔥 1. 今日核心 (非做不可)</span>
+                <textarea id="plan-core" rows="3" placeholder="今天一定要完成的最重要任務..."></textarea>
+            </div>
+            <div class="plan-card-item">
+                <span class="plan-card-title">⚡ 2. 次要任務 (有彈性)</span>
+                <textarea id="plan-secondary" rows="3" placeholder="重要但可稍微彈性處理的工作..."></textarea>
+            </div>
+            <div class="plan-card-item">
+                <span class="plan-card-title">🌱 3. 微小勝仗 (輕鬆小事)</span>
+                <textarea id="plan-minor" rows="3" placeholder="花 5~10 分鐘就能輕鬆搞定的小事..."></textarea>
+            </div>
+        </div>
+
+        <!-- 每日時間軸表 -->
+        <h3 style="font-size: 1.05rem; color: var(--dark-wood); margin-top: 20px; margin-bottom: 8px;">⏰ 今日抗焦慮時間軸表</h3>
+        <div id="schedule-container">
+            <div class="schedule-row">
+                <span class="schedule-time">09:00 - 09:30</span>
+                <input type="text" id="sch-1" placeholder="暖機與對焦，檢視今日清單...">
+            </div>
+            <div class="schedule-row">
+                <span class="schedule-time">09:30 - 11:30</span>
+                <input type="text" id="sch-2" placeholder="深度工作時段（攻克今日核心）...">
+            </div>
+            <div class="schedule-row">
+                <span class="schedule-time">11:30 - 12:00</span>
+                <input type="text" id="sch-3" placeholder="雜務處理或微小勝仗...">
+            </div>
+            <div class="schedule-row">
+                <span class="schedule-time">12:00 - 14:30</span>
+                <input type="text" id="sch-4" placeholder="用餐與午休午憩，徹底放空...">
+            </div>
+            <div class="schedule-row">
+                <span class="schedule-time">14:30 - 18:00</span>
+                <input type="text" id="sch-5" placeholder="下午工作區塊（次要任務或製作玩具）...">
+            </div>
+            <div class="schedule-row">
+                <span class="schedule-time">18:00 之後</span>
+                <input type="text" id="sch-6" placeholder="彈性時段（訪客來訪、收尾或休息）...">
+            </div>
+        </div>
+    </div>
+
+    <!-- 冒險工坊 2.0：成就與私人心情紀錄 -->
+    <div class="full-layout card">
+        <h2>🏅 冒險工坊 2.0｜連續完成與徽章</h2>
+        <p class="v2-muted">每日計畫只有標記為「已完成」才計入完成紀錄。休息日會讓連續天數歸零，但保留歷史最佳。每個細項委託首次完成時獲得 1 點冒險點數；點數可在獨立商店消費，與原有金幣完全分開。勳章達標後手動領取。</p>
+        <div id="streak-dashboard" class="v2-stats"></div>
+        <h3 style="margin-top:16px">🎖️ 冒險徽章（達標後手動領取）</h3>
+        <div id="badge-dashboard" class="v2-badges"></div>
+        <section class="points-shop-section" aria-labelledby="points-shop-title">
+            <h3 id="points-shop-title">🧭 冒險點數商店</h3>
+            <p class="v2-muted">使用冒險點數兌換獎勵；兌換會扣除點數，不影響金幣。點數獲得與消費分開記錄。</p>
+            <div class="v2-stats" id="points-shop-balance"></div>
+            <div class="form-group" style="margin-top:12px; flex-wrap:wrap;">
+                <input type="text" id="points-shop-item-input" placeholder="🎁 新增冒險獎勵商品名稱">
+                <input type="number" id="points-shop-cost-input" class="num-input" style="width:100px;" placeholder="點數價格" min="1">
+                <button onclick="addPointsShopItem()" style="background:#2859a8;">新增點數商品</button>
+            </div>
+            <ul id="points-shop-list" class="points-shop-list"></ul>
+            <h4 style="margin-top:18px;">📜 點數兌換紀錄</h4>
+            <ul id="points-redemption-history" class="points-history-list"></ul>
+        </section>
+    </div>
+
+    <div class="full-layout card">
+        <h2>💛 每日心情紀錄</h2>
+        <p class="v2-muted">每天記錄一次。內容只顯示在這個私人頁面，不會自動公開；資料儲存在目前瀏覽器中，並未加密，請留意共用裝置的隱私。備份檔會包含心情紀錄。</p>
+        <div class="v2-field"><label>今天的心情（選一項）</label><div class="mood-options" id="mood-options"></div></div>
+        <div class="v2-grid">
+            <div class="v2-field"><label for="mood-score">心情分數（1–5）</label><select id="mood-score"><option value="1">1 分｜很低落</option><option value="2">2 分｜不太好</option><option value="3" selected>3 分｜普通</option><option value="4">4 分｜不錯</option><option value="5">5 分｜很好</option></select></div>
+            <div class="v2-field"><label for="mood-cause">可能的情緒原因</label><select id="mood-cause"><option value="未確定">暫時不確定</option><option>工作／任務壓力</option><option>人際／溝通</option><option>家庭／關係</option><option>身體疲憊／睡眠</option><option>健康／身體不適</option><option>經濟／生活安排</option><option>孤單／缺少支持</option><option>好消息／成就感</option><option>休息／自我照顧</option><option>其他</option></select></div>
+        </div>
+        <div class="v2-field"><label for="mood-note">備註（選填）</label><textarea id="mood-note" rows="3" placeholder="想記下什麼都可以，也可以留白。"></textarea></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="saveMoodRecord()">💾 儲存今天心情</button><button type="button" onclick="clearMoodForm()">清空表單</button><button type="button" onclick="deleteMoodRecord()">刪除今天紀錄</button></div>
+        <div id="mood-support" class="v2-panel" style="display:none;margin-top:14px"></div>
+        <div class="v2-panel">
+            <h3 id="mood-month-title">📊 本月心情回顧</h3>
+            <div id="mood-month-stats" class="v2-stats"></div>
+            <h3 style="margin-top:16px">📖 心情日記列表</h3>
+            <div id="mood-diary-list"></div>
+        </div>
+    </div>
+
+    <!-- 廠商訂單管理：與工作日誌日期連動，附件隨備份保存 -->
+    <div class="full-layout card" id="supplier-orders-section">
+        <h2>📦 廠商訂單紀錄</h2>
+        <p class="v2-muted">可保存廠商訂購單圖片、品項文字與處理狀態；訂單會連結到訂單日期的冒險日誌，並納入資料備份。圖片會儲存在此瀏覽器中，請定期備份。</p>
+        <div class="v2-grid">
+            <div class="v2-field"><label for="supplier-order-date">訂單日期</label><input type="date" id="supplier-order-date"></div>
+            <div class="v2-field"><label for="supplier-order-name">廠商名稱 *</label><input type="text" id="supplier-order-name" placeholder="例如：○○材料行"></div>
+            <div class="v2-field"><label for="supplier-order-number">訂單編號（選填）</label><input type="text" id="supplier-order-number" placeholder="廠商單號／內部編號"></div>
+            <div class="v2-field"><label for="supplier-order-status">處理狀態</label><select id="supplier-order-status"><option>待確認</option><option>已確認</option><option>已下單</option><option>部分到貨</option><option>已到貨</option><option>已結案</option></select></div>
+        </div>
+        <div class="v2-field"><label for="supplier-order-items">訂購品項（每行一項，可貼上品號、品名、規格、數量）</label><textarea id="supplier-order-items" rows="5" placeholder="A01｜品名｜規格｜數量 10
+A02｜品名｜規格｜數量 6"></textarea></div>
+        <div class="v2-field"><label for="supplier-order-note">工作備忘（選填）</label><textarea id="supplier-order-note" rows="3" placeholder="例如：待報價、指定到貨日、需核對尺寸……"></textarea></div>
+        <div class="v2-field"><label for="supplier-order-image">訂單圖片／截圖（選填）</label><input type="file" id="supplier-order-image" accept="image/*"><small class="v2-muted">圖片會縮小後保存以減少容量；若圖片很多，請定期匯出備份。</small><div id="supplier-order-image-preview" style="margin-top:8px"></div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" onclick="saveSupplierOrder()">💾 儲存廠商訂單</button><button type="button" class="btn-danger" onclick="clearSupplierOrderForm()">清空表單</button></div>
+        <hr style="margin:20px 0;border:0;border-top:1px solid #ddd">
+        <div class="v2-grid"><div class="v2-field"><label for="supplier-order-search">搜尋訂單</label><input type="search" id="supplier-order-search" placeholder="搜尋廠商、品號、品名、備忘" oninput="renderSupplierOrders()"></div><div class="v2-field"><label for="supplier-order-filter">依狀態篩選</label><select id="supplier-order-filter" onchange="renderSupplierOrders()"><option value="">全部狀態</option><option>待確認</option><option>已確認</option><option>已下單</option><option>部分到貨</option><option>已到貨</option><option>已結案</option></select></div></div>
+        <div id="supplier-orders-list"></div>
+    </div>
+
+    <!-- 下方：冒險日誌月曆 -->
+    <div class="full-layout card">
+        <div class="calendar-header">
+            <h2 id="calendar-month-year" style="margin:0;">🗓️ 冒險日誌月曆</h2>
+            <div class="calendar-actions">
+                <button onclick="goToToday()">📍 今天</button>
+                <button onclick="changeMonth(-1)">◀ 上個月</button>
+                <button onclick="changeMonth(1)">下個月 ▶</button>
+                <button onclick="exportBackup()">⬇️ 備份資料</button>
+                <button onclick="document.getElementById('import-backup-file').click()">⬆️ 還原資料</button>
+                <button onclick="exportMonthlyPlans()">📄 匯出本月計畫</button>
+                <input id="import-backup-file" type="file" accept=".json,application/json" style="display:none" onchange="importBackup(event)">
+            </div>
+        </div>
+        
+        <div class="calendar-grid" id="calendar-grid"></div>
+
+        <div class="log-box" id="log-box">
+            <strong>🔍 點擊上方任何月曆日期</strong>，即可檢視當天的計畫與工坊成就日誌；也可標記進度、匯出計畫或備份／還原全部資料。
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            gold: 0, xp: 0, level: 1, orders: [],
+            dailySubtasks: {}, 
+            customTasks: [],
+            taskOrder: [], 
+            futurePlans: [],
+            shopItems: [], 
+            timers: [],
+            historyLogs: {},
+            dailyPlans: {},
+            moodRecords: {},
+            adventurePointsBalance: null, adventurePointsEarned: 0, adventurePointAwards: {},
+            pointsShopItems: [], pointsRedemptionHistory: []
+        };
+
+        const defaultDailyTasks = [
+            { id: 't1', name: '合作店家訊息回覆', rewardGold: 15, rewardXp: 10 },
+            { id: 't4', name: '鳥友訊息回覆', rewardGold: 10, rewardXp: 8 },
+            { id: 't5', name: '籠子清潔', rewardGold: 30, rewardXp: 20 },
+            { id: 't3', name: '採購料件', rewardGold: 20, rewardXp: 15 },
+            { id: 't6', name: '登打出貨單', rewardGold: 15, rewardXp: 10 },
+            { id: 't7', name: '核算記帳', rewardGold: 100, rewardXp: 80 }
+        ];
+
+        const defaultShopItems = [
+            { id: 's1', text: '邪惡美味珍奶', cost: 1500 },
+            { id: 's2', text: '酥脆多汁大雞排', cost: 2500 },
+            { id: 's3', text: '彩色電子書閱讀器', cost: 80000 }
+        ];
+        const defaultPointsShopItems = [
+            {id:'p1', text:'悠閒休息券', cost:5},
+            {id:'p2', text:'小小成就獎勵', cost:15},
+            {id:'p3', text:'專屬驚喜禮物', cost:30},
+            {id:'p4', text:'傳奇冒險獎勵', cost:50}
+        ];
+
+        let currentCalendarDate = new Date();
+        let selectedCalendarDateStr = getTodayString();
+        let timerInterval = null;
+
+        window.onload = function() {
+            const savedState = localStorage.getItem('yuyen_workshop_save');
+            if (savedState) { 
+                try { gameState = JSON.parse(savedState); } catch(e) { console.error("讀取存檔失敗"); }
+            }
+            
+            if (!gameState.dailySubtasks) { gameState.dailySubtasks = {}; }
+            if (!gameState.customTasks) { gameState.customTasks = []; }
+            if (!gameState.taskOrder) { gameState.taskOrder = []; }
+            if (!gameState.futurePlans) { gameState.futurePlans = []; }
+            if (!gameState.shopItems || gameState.shopItems.length === 0) { gameState.shopItems = [...defaultShopItems]; }
+            if (!gameState.timers) { gameState.timers = []; }
+            if (!gameState.historyLogs) { gameState.historyLogs = {}; }
+            if (!gameState.dailyPlans) { gameState.dailyPlans = {}; }
+            if (!gameState.moodRecords) { gameState.moodRecords = {}; }
+            if (!Array.isArray(gameState.supplierOrders)) gameState.supplierOrders = [];
+            if (!gameState.claimedAdventureBadges) { gameState.claimedAdventureBadges = {}; }
+            if (!Array.isArray(gameState.pointsShopItems) || gameState.pointsShopItems.length === 0) gameState.pointsShopItems = [...defaultPointsShopItems];
+            if (!Array.isArray(gameState.pointsRedemptionHistory)) gameState.pointsRedemptionHistory = [];
+            if (!gameState.adventurePointAwards || typeof gameState.adventurePointAwards !== 'object') gameState.adventurePointAwards = {};
+            if (typeof gameState.adventurePointsBalance !== 'number' || typeof gameState.adventurePointsEarned !== 'number') {
+                // 舊版存檔移轉：把目前已完成的細項各納入一次初始點數，之後改用獨立餘額與發放帳本。
+                let migratedCount = 0;
+                getAllOrderedTasks().forEach(task => (gameState.dailySubtasks[task.id] || []).forEach(sub => {
+                    if (sub && sub.done) {
+                        const awardKey = `${task.id}::${sub.id}`;
+                        if (!gameState.adventurePointAwards[awardKey]) { gameState.adventurePointAwards[awardKey] = {taskId:task.id, subId:sub.id, awardedAt:'legacy-migration'}; migratedCount++ ; }
+                    }
+                }));
+                gameState.adventurePointsBalance = migratedCount;
+                gameState.adventurePointsEarned = migratedCount;
+            }
+            if (!gameState.gold) gameState.gold = 0;
+            if (!gameState.xp) gameState.xp = 0;
+            if (!gameState.level) gameState.level = 1;
+            if (!gameState.orders) gameState.orders = [];
+
+            defaultDailyTasks.forEach(task => {
+                if (!gameState.dailySubtasks[task.id]) { gameState.dailySubtasks[task.id] = []; }
+            });
+
+            updateUI();
+            renderDailyTasks();
+            renderOrders();
+            renderFuturePlans();
+            renderShopItems();
+            renderPointsShop();
+            renderTimers();
+            renderCalendar();
+            showTodayLog();
+            document.getElementById('supplier-order-date').value = getTodayString();
+            renderSupplierOrders();
+            updateChallengeIndicator();
+            loadDailyPlanForToday();
+            initMoodForm();
+            renderMoodDashboard();
+            renderStreakDashboard();
+
+            timerInterval = setInterval(updateTimerCountdowns, 1000);
+        };
+
+        function saveGame() { localStorage.setItem('yuyen_workshop_save', JSON.stringify(gameState)); }
+
+        function getTodayString() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        /* 📝 每日抗焦慮計畫儲存與讀取 */
+        function saveDailyPlan() {
+            const today = getTodayString();
+            const targetDate = window.dailyPlanEditingDate || today;
+            const previousPlan = gameState.dailyPlans[targetDate] || {};
+            gameState.dailyPlans[targetDate] = {
+                status: previousPlan.status || 'planned',
+                note: previousPlan.note || '',
+                core: document.getElementById('plan-core').value,
+                secondary: document.getElementById('plan-secondary').value,
+                minor: document.getElementById('plan-minor').value,
+                sch1: document.getElementById('sch-1').value,
+                sch2: document.getElementById('sch-2').value,
+                sch3: document.getElementById('sch-3').value,
+                sch4: document.getElementById('sch-4').value,
+                sch5: document.getElementById('sch-5').value,
+                sch6: document.getElementById('sch-6').value
+            };
+            saveGame();
+            renderCalendar();
+            showLogDetail(targetDate);
+            alert(`💾 ${targetDate} 的抗焦慮計畫與時間軸已成功儲存！`);
+            window.dailyPlanEditingDate = null;
+            document.querySelector('button[onclick="saveDailyPlan()"]').textContent = '💾 儲存今日計畫';
+        }
+
+        function loadDailyPlanForToday() {
+            const today = getTodayString();
+            window.dailyPlanEditingDate = null;
+            document.querySelector('button[onclick="saveDailyPlan()"]').textContent = '💾 儲存今日計畫';
+            const plan = gameState.dailyPlans[today];
+            if (plan) {
+                document.getElementById('plan-core').value = plan.core || '';
+                document.getElementById('plan-secondary').value = plan.secondary || '';
+                document.getElementById('plan-minor').value = plan.minor || '';
+                document.getElementById('sch-1').value = plan.sch1 || '';
+                document.getElementById('sch-2').value = plan.sch2 || '';
+                document.getElementById('sch-3').value = plan.sch3 || '';
+                document.getElementById('sch-4').value = plan.sch4 || '';
+                document.getElementById('sch-5').value = plan.sch5 || '';
+                document.getElementById('sch-6').value = plan.sch6 || '';
+            }
+        }
+
+        /* 🔄 位置移動核心函式 */
+        function moveArrayItem(array, fromIndex, toIndex) {
+            if (toIndex < 0 || toIndex >= array.length) return;
+            const item = array.splice(fromIndex, 1)[0];
+            array.splice(toIndex, 0, item);
+            saveGame();
+        }
+
+        function moveOrder(index, dir) { moveArrayItem(gameState.orders, index, index + dir); renderOrders(); }
+        function moveTimer(index, dir) { moveArrayItem(gameState.timers, index, index + dir); renderTimers(); }
+        function moveFuturePlan(index, dir) { moveArrayItem(gameState.futurePlans, index, index + dir); renderFuturePlans(); }
+        function moveShopItem(index, dir) { moveArrayItem(gameState.shopItems, index, index + dir); renderShopItems(); }
+
+        function moveDailyTask(index, dir) {
+            const allTasks = getAllOrderedTasks();
+            moveArrayItem(allTasks, index, index + dir);
+            gameState.taskOrder = allTasks.map(t => t.id);
+            saveGame();
+            renderDailyTasks();
+        }
+
+        function moveSubtask(taskId, index, dir) {
+            if (gameState.dailySubtasks[taskId]) {
+                moveArrayItem(gameState.dailySubtasks[taskId], index, index + dir);
+                renderDailyTasks();
+            }
+        }
+
+        function getAllOrderedTasks() {
+            const allAvailable = [...defaultDailyTasks, ...gameState.customTasks];
+            allAvailable.forEach(t => {
+                if (!gameState.taskOrder.includes(t.id)) { gameState.taskOrder.push(t.id); }
+            });
+            gameState.taskOrder = gameState.taskOrder.filter(id => allAvailable.some(t => t.id === id));
+            return gameState.taskOrder.map(id => allAvailable.find(t => t.id === id)).filter(Boolean);
+        }
+
+        function setupDragAndDrop(containerId, onReorder) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            let draggedItem = null;
+
+            container.addEventListener('dragstart', (e) => {
+                draggedItem = e.target.closest('li');
+                if (draggedItem) { draggedItem.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
+            });
+            container.addEventListener('dragend', (e) => {
+                if (draggedItem) { draggedItem.classList.remove('dragging'); draggedItem = null; }
+            });
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(container, e.clientY);
+                const currentDragging = container.querySelector('.dragging');
+                if (currentDragging && afterElement == null) { container.appendChild(currentDragging); }
+                else if (currentDragging && afterElement) { container.insertBefore(currentDragging, afterElement); }
+            });
+            container.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const items = Array.from(container.querySelectorAll(':scope > li'));
+                const newOrderIndices = items.map(item => parseInt(item.dataset.index)).filter(n => !isNaN(n));
+                if (newOrderIndices.length > 0 && onReorder) { onReorder(newOrderIndices); }
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll(':scope > li:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; }
+                else { return closest; }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function logAchievement(text, type, data, gold, xp) {
+            const today = getTodayString();
+            if (!gameState.historyLogs[today]) { gameState.historyLogs[today] = []; }
+            gameState.historyLogs[today].push({
+                id: 'log_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                text: text, type: type, data: data, gold: gold, xp: xp
+            });
+            saveGame();
+            renderCalendar();
+            if (selectedCalendarDateStr === today) { showLogDetail(today); }
+        }
+
+        function updateUI() {
+            let xpNeeded = gameState.level * 100;
+            while (gameState.xp >= xpNeeded) { 
+                gameState.xp -= xpNeeded; 
+                gameState.level++; 
+                alert(`🎉 恭喜升級！您目前達到了 LV.${gameState.level}！`); 
+                xpNeeded = gameState.level * 100;
+            }
+            while (gameState.xp < 0 && gameState.level > 1) {
+                gameState.level--;
+                xpNeeded = gameState.level * 100;
+                gameState.xp += xpNeeded;
+            }
+            if (gameState.xp < 0) gameState.xp = 0;
+            if (gameState.gold < 0) gameState.gold = 0;
+
+            document.getElementById('gold-display').innerText = gameState.gold;
+            document.getElementById('level-display').innerText = `LV. ${gameState.level} 傳奇工匠`;
+            document.getElementById('xp-text').innerText = `${gameState.xp}/${xpNeeded}`;
+            document.getElementById('xp-bar').style.width = `${(gameState.xp / xpNeeded) * 100}%`;
+        }
+
+        /* ⏱️ 限時挑戰邏輯 */
+        function addTimerChallenge() {
+            const titleInput = document.getElementById('timer-title-input');
+            const hourInput = document.getElementById('timer-hour-input');
+            const minInput = document.getElementById('timer-min-input');
+            const rewardInput = document.getElementById('timer-reward-gold');
+            const penaltyInput = document.getElementById('timer-penalty-gold');
+
+            const title = titleInput.value.trim();
+            const hours = parseInt(hourInput.value) || 0;
+            const minutes = parseInt(minInput.value) || 0;
+            const rewardGold = parseInt(rewardInput.value) || 0;
+            const penaltyGold = parseInt(penaltyInput.value) || 0;
+            const totalMinutes = hours * 60 + minutes;
+
+            if (!title || totalMinutes <= 0) { alert('請輸入有效的挑戰任務名稱，以及設定至少 1 分鐘以上的倒數時間！'); return; }
+
+            const now = Date.now();
+            const endTime = now + totalMinutes * 60 * 1000;
+            const newTimer = {
+                id: 'timer_' + now, title: title, endTime: endTime,
+                rewardGold: rewardGold, rewardXp: Math.floor(rewardGold * 0.8), penaltyGold: penaltyGold
+            };
+
+            gameState.timers.push(newTimer);
+            titleInput.value = '';
+            renderTimers();
+            saveGame();
+        }
+
+        function renderTimers() {
+            const listEl = document.getElementById('timer-challenge-list');
+            listEl.innerHTML = '';
+            if (gameState.timers.length === 0) {
+                listEl.innerHTML = `<li style="color:#888; text-align:center; padding: 10px; font-size:0.85rem;">目前沒有進行中的限時挑戰。</li>`;
+                return;
+            }
+            gameState.timers.forEach((t, index) => {
+                const li = document.createElement('li');
+                li.className = 'timer-item';
+                li.id = 'timer_card_' + t.id;
+                li.draggable = true;
+                li.dataset.index = index;
+                li.innerHTML = `
+                    <div class="timer-header">
+                        <span class="timer-title">🎯 ${t.title}</span>
+                        <span class="timer-countdown" id="count_disp_${t.id}">00分00秒</span>
+                    </div>
+                    <div class="timer-details">
+                        <span>🎁 成功獎勵：🪙 +${t.rewardGold} / XP +${t.rewardXp}</span>
+                        <span>💥 失敗懲罰：🪙 -${t.penaltyGold}</span>
+                    </div>
+                    <div class="timer-actions">
+                        <div class="move-btn-group">
+                            <button class="btn-move" onclick="moveTimer(${index}, -1)">▲</button>
+                            <button class="btn-move" onclick="moveTimer(${index}, 1)">▼</button>
+                        </div>
+                        <button class="btn-success" style="font-size:0.8rem; padding: 4px 10px;" onclick="completeTimer('${t.id}', event)">✅ 完成挑戰</button>
+                        <button class="btn-cancel" style="font-size:0.8rem; padding: 4px 8px;" onclick="cancelTimer('${t.id}')">✕ 放棄</button>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+            setupDragAndDrop('timer-challenge-list', (newIndices) => {
+                gameState.timers = newIndices.map(i => gameState.timers[i]);
+                saveGame();
+                renderTimers();
+            });
+            updateTimerCountdowns();
+        }
+
+        function updateTimerCountdowns() {
+            if (!gameState.timers || gameState.timers.length === 0) return;
+            const now = Date.now();
+            gameState.timers.forEach(t => {
+                const disp = document.getElementById(`count_disp_${t.id}`);
+                const remaining = Math.floor((t.endTime - now) / 1000);
+                if (remaining <= 0) {
+                    if (disp) disp.innerText = "00:00 (時間到!)";
+                    failTimer(t.id);
+                } else {
+                    const hrs = Math.floor(remaining / 3600);
+                    const mins = Math.floor((remaining % 3600) / 60);
+                    const secs = remaining % 60;
+                    if (disp) {
+                        disp.innerText = hrs > 0 ? `${hrs}時${String(mins).padStart(2, '0')}分${String(secs).padStart(2, '0')}秒` : `${String(mins).padStart(2, '0')}分${String(secs).padStart(2, '0')}秒`;
+                    }
+                }
+            });
+        }
+
+        function completeTimer(id, event) {
+            const timer = gameState.timers.find(t => t.id === id);
+            if (!timer) return;
+            gameState.gold += timer.rewardGold;
+            gameState.xp += timer.rewardXp;
+            showFloatingText(`⏱️ 挑戰成功!! 🪙+${timer.rewardGold}`, event.clientX, event.clientY);
+            logAchievement(`⏱️ 限時挑戰成功：完成【${timer.title}】 (獲得 🪙+${timer.rewardGold} / XP+${timer.rewardXp})`, 'timer_success', null, timer.rewardGold, timer.rewardXp);
+            gameState.timers = gameState.timers.filter(t => t.id !== id);
+            updateUI();
+            renderTimers();
+            saveGame();
+        }
+
+        function failTimer(id) {
+            const timer = gameState.timers.find(t => t.id === id);
+            if (!timer) return;
+            gameState.gold -= timer.penaltyGold;
+            if (gameState.gold < 0) gameState.gold = 0;
+            alert(`⏰ 時間到！【${timer.title}】限時挑戰失敗！\n依約懲罰扣除 🪙 ${timer.penaltyGold} 金幣！`);
+            logAchievement(`💥 限時挑戰失敗：【${timer.title}】逾時未完成 (依約扣除 🪙 ${timer.penaltyGold})`, 'timer_fail', null, -timer.penaltyGold, 0);
+            gameState.timers = gameState.timers.filter(t => t.id !== id);
+            updateUI();
+            renderTimers();
+            saveGame();
+        }
+
+        function cancelTimer(id) {
+            if (confirm('確定要放棄這項限時挑戰嗎？')) {
+                gameState.timers = gameState.timers.filter(t => t.id !== id);
+                renderTimers();
+                saveGame();
+            }
+        }
+
+        /* 🛒 商店系統邏輯 */
+        function addShopItem() {
+            const itemInput = document.getElementById('shop-item-input');
+            const costInput = document.getElementById('shop-cost-input');
+            const text = itemInput.value.trim();
+            const cost = parseInt(costInput.value);
+            if (!text || isNaN(cost) || cost <= 0) { alert('請填寫完整的商品名稱與正確的金幣價格！'); return; }
+            gameState.shopItems.push({ id: 'shop_' + Date.now(), text: text, cost: cost });
+            itemInput.value = ''; costInput.value = '';
+            renderShopItems(); saveGame();
+        }
+
+        function renderShopItems() {
+            const listEl = document.getElementById('shop-item-list');
+            listEl.innerHTML = '';
+            if (gameState.shopItems.length === 0) {
+                listEl.innerHTML = `<li style="color:#888; text-align:center; padding: 15px; font-size:0.9rem;">貨架上空空的，快上架一些想買的犒賞吧！</li>`;
+                return;
+            }
+            gameState.shopItems.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'shop-item'; li.draggable = true; li.dataset.index = index;
+                li.innerHTML = `
+                    <span class="shop-content">🎁 ${item.text} <span class="shop-cost">(🪙 ${item.cost})</span></span>
+                    <div class="shop-actions">
+                        <div class="move-btn-group">
+                            <button class="btn-move" onclick="moveShopItem(${index}, -1)">▲</button>
+                            <button class="btn-move" onclick="moveShopItem(${index}, 1)">▼</button>
+                        </div>
+                        <button class="btn-buy" onclick="buyShopItem('${item.id}', event)">🪙 購買</button>
+                        <button class="btn-cancel" style="padding: 4px 8px; font-size:0.8rem;" onclick="deleteShopItem('${item.id}')">✕ 下架</button>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+            setupDragAndDrop('shop-item-list', (newIndices) => {
+                gameState.shopItems = newIndices.map(i => gameState.shopItems[i]);
+                saveGame(); renderShopItems();
+            });
+        }
+
+        function buyShopItem(id, event) {
+            const item = gameState.shopItems.find(p => p.id === id);
+            if (!item) return;
+            if (gameState.gold < item.cost) { alert(`❌ 金幣不足！此補給品需要 🪙 ${item.cost} 金幣，您目前只有 🪙 ${gameState.gold} 金幣。`); return; }
+            if (confirm(`確認要花費 🪙 ${item.cost} 金幣來購買並犒賞自己「${item.text}」嗎？`)) {
+                gameState.gold -= item.cost;
+                showFloatingText(`🪙 -${item.cost}`, event.clientX, event.clientY);
+                logAchievement(`🛒 犒賞補給：花費了 🪙 ${item.cost} 金幣兌換了【${item.text}】！`, 'shop_buy', null, -item.cost, 0);
+                updateUI(); saveGame();
+            }
+        }
+
+        function deleteShopItem(id) {
+            if (confirm('確定要將這件商品從商店下架嗎？')) {
+                gameState.shopItems = gameState.shopItems.filter(p => p.id !== id);
+                renderShopItems(); saveGame();
+            }
+        }
+
+        /* 🗺️ 未來冒險計畫邏輯 */
+        function addFuturePlan() {
+            const inputEl = document.getElementById('future-plan-input');
+            const text = inputEl.value.trim();
+            if (!text) { alert('請填寫未來計畫內容！'); return; }
+            gameState.futurePlans.push({ id: 'fut_' + Date.now(), text: text });
+            inputEl.value = ''; renderFuturePlans(); saveGame();
+        }
+
+        function renderFuturePlans() {
+            const listEl = document.getElementById('future-plan-list');
+            listEl.innerHTML = '';
+            if (gameState.futurePlans.length === 0) {
+                listEl.innerHTML = `<li style="color:#888; text-align:center; padding: 15px; font-size:0.9rem;">目前未來一片空白，快寫下您的工坊藍圖吧！</li>`;
+                return;
+            }
+            gameState.futurePlans.forEach((plan, index) => {
+                const li = document.createElement('li');
+                li.className = 'future-item'; li.draggable = true; li.dataset.index = index;
+                li.innerHTML = `
+                    <span class="future-content">📍 ${plan.text}</span>
+                    <div class="future-actions">
+                        <div class="move-btn-group">
+                            <button class="btn-move" onclick="moveFuturePlan(${index}, -1)">▲</button>
+                            <button class="btn-move" onclick="moveFuturePlan(${index}, 1)">▼</button>
+                        </div>
+                        <button class="btn-edit" onclick="editFuturePlan('${plan.id}')">✍️ 編輯</button>
+                        <button class="btn-cancel" onclick="deleteFuturePlan('${plan.id}')">✕ 刪除</button>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+            setupDragAndDrop('future-plan-list', (newIndices) => {
+                gameState.futurePlans = newIndices.map(i => gameState.futurePlans[i]);
+                saveGame(); renderFuturePlans();
+            });
+        }
+
+        function editFuturePlan(id) {
+            const plan = gameState.futurePlans.find(p => p.id === id);
+            if (plan) {
+                const newText = prompt('請修改您的未來冒險計畫：', plan.text);
+                if (newText && newText.trim()) { plan.text = newText.trim(); renderFuturePlans(); saveGame(); }
+            }
+        }
+
+        function deleteFuturePlan(id) {
+            if (confirm('確定要移除這項未來計畫嗎？')) {
+                gameState.futurePlans = gameState.futurePlans.filter(p => p.id !== id);
+                renderFuturePlans(); saveGame();
+            }
+        }
+
+        function updateChallengeIndicator() {
+            let totalDone = 0;
+            getAllOrderedTasks().forEach(t => {
+                const subs = gameState.dailySubtasks[t.id] || [];
+                totalDone += subs.filter(s => s.done).length;
+            });
+            const indicator = document.getElementById('challenge-count');
+            if(indicator) indicator.innerText = totalDone;
+        }
+
+        function addCustomTask() {
+            const inputEl = document.getElementById('custom-task-name');
+            const taskName = inputEl.value.trim();
+            if (!taskName) { alert('請輸入委託名稱！'); return; }
+            const newId = 'cst_' + Date.now();
+            gameState.customTasks.push({ id: newId, name: `📜 ${taskName}`, rewardGold: 25, rewardXp: 20, isCustom: true });
+            gameState.taskOrder.push(newId);
+            gameState.dailySubtasks[newId] = [];
+            inputEl.value = ''; renderDailyTasks(); saveGame();
+        }
+
+        function deleteCustomTask(taskId) {
+            if(confirm('確定要撤除這張特別委託公告嗎？')) {
+                gameState.customTasks = gameState.customTasks.filter(t => t.id !== taskId);
+                gameState.taskOrder = gameState.taskOrder.filter(id => id !== taskId);
+                delete gameState.dailySubtasks[taskId];
+                renderDailyTasks(); saveGame(); updateChallengeIndicator();
+            }
+        }
+
+        function renderDailyTasks() {
+            const listEl = document.getElementById('daily-task-list'); listEl.innerHTML = '';
+            const allTasks = getAllOrderedTasks();
+            allTasks.forEach((task, taskIndex) => {
+                const subs = gameState.dailySubtasks[task.id] || [];
+                const doneCount = subs.filter(s => s.done).length;
+                const totalCount = subs.length;
+                let progressText = totalCount > 0 ? ` <span style="color:var(--main-wood); font-size:0.9rem;">(${doneCount}/${totalCount})</span>` : '';
+
+                const li = document.createElement('li');
+                li.className = 'task-item'; li.draggable = true; li.dataset.index = taskIndex;
+                const deleteButton = task.isCustom ? `<button class="btn-del-task" onclick="deleteCustomTask('${task.id}')">✕ 撤除</button>` : '';
+                const moveBtns = `<div class="move-btn-group" style="display:inline-flex; margin-left:8px;"><button class="btn-move" onclick="moveDailyTask(${taskIndex}, -1)">▲</button><button class="btn-move" onclick="moveDailyTask(${taskIndex}, 1)">▼</button></div>`;
+
+                let html = `
+                    <div class="task-main-row">
+                        <div class="task-info">
+                            <span class="task-name">${task.name}${progressText} ${deleteButton} ${moveBtns}</span>
+                            <span class="task-reward">單項獎勵: 🪙+${task.rewardGold} / XP+${task.rewardXp}</span>
+                        </div>
+                        <button class="btn-add-sub" onclick="addDailySubtask('${task.id}')">+ 增加細項</button>
+                    </div>
+                `;
+                if (subs.length > 0) {
+                    html += `<div class="subtask-container">`;
+                    subs.forEach((sub, subIndex) => {
+                        html += `
+                            <div class="subtask-item ${sub.done ? 'done' : ''}" draggable="true">
+                                <label class="subtask-label">
+                                    <input type="checkbox" ${sub.done ? 'checked disabled' : ''} onclick="toggleSubtask('${task.id}', '${sub.id}', event)">
+                                    <span>${task.name.replace('📜 ', '')}：<strong>${sub.detail}</strong></span>
+                                </label>
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    ${!sub.done ? `<button class="btn-move" onclick="moveSubtask('${task.id}',${subIndex}, -1)">▲</button><button class="btn-move" onclick="moveSubtask('${task.id}',${subIndex}, 1)">▼</button><button class="btn-del-sub" onclick="deleteDailySubtrack('${task.id}', '${sub.id}')">✕ 刪除</button>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+                li.innerHTML = html;
+                listEl.appendChild(li);
+            });
+            setupDragAndDrop('daily-task-list', (newIndices) => {
+                const ordered = getAllOrderedTasks();
+                gameState.taskOrder = newIndices.map(i => ordered[i].id);
+                saveGame(); renderDailyTasks();
+            });
+        }
+
+        function addDailySubtask(taskId) {
+            const task = getAllOrderedTasks().find(t => t.id === taskId);
+            const detailInput = prompt(`請輸入【${task.name.replace('📜 ', '')}】的具體對象或細節：`);
+            if (detailInput && detailInput.trim()) {
+                if (!gameState.dailySubtasks[taskId]) { gameState.dailySubtasks[taskId] = []; }
+                gameState.dailySubtasks[taskId].push({ id: 'sub_' + Date.now(), detail: detailInput.trim(), done: false });
+                renderDailyTasks(); saveGame();
+            }
+        }
+
+        function toggleSubtask(taskId, subId, event) {
+            const task = getAllOrderedTasks().find(t => t.id === taskId);
+            const sub = (gameState.dailySubtasks[taskId] || []).find(s => s.id === subId);
+            if (sub && !sub.done) {
+                sub.done = true;
+                const pointAwarded = awardAdventurePoint(taskId, subId);
+                gameState.gold += task.rewardGold; gameState.xp += task.rewardXp;
+                showFloatingText(`🪙+${task.rewardGold} XP+${task.rewardXp}${pointAwarded ? ' ⭐+1點' : ''}`, event.clientX, event.clientY);
+                logAchievement(`⚔️ 完成日常：${task.name.replace('📜 ', '')} — ${sub.detail}`, 'subtask', { taskId, subId, subDetail: sub.detail }, task.rewardGold, task.rewardXp);
+                updateUI(); renderDailyTasks(); updateChallengeIndicator(); renderStreakDashboard();
+            }
+        }
+
+        function deleteDailySubtrack(taskId, subId) {
+            if (gameState.dailySubtasks[taskId]) {
+                gameState.dailySubtasks[taskId] = gameState.dailySubtasks[taskId].filter(s => s.id !== subId);
+                renderDailyTasks(); saveGame(); updateChallengeIndicator(); renderStreakDashboard();
+            }
+        }
+
+        function triggerManualAchievement(event) {
+            const achievementDetail = prompt("恭喜達成今日特殊突破！請輸入您達成的光榮成就內容：");
+            if (achievementDetail && achievementDetail.trim()) {
+                gameState.gold += 100; gameState.xp += 100;
+                showFloatingText(`🏆 史詩突破!! 🪙+100 XP+100`, event.clientX, event.clientY);
+                logAchievement(`🏆 解鎖重大成就：${achievementDetail.trim()} (獲得工坊大賞 🪙+100/XP+100)`, 'achievement', null, 100, 100);
+                updateUI();
+            }
+        }
+
+        function addOrder() {
+            const shopName = document.getElementById('shop-name').value.trim();
+            const toyName = document.getElementById('toy-name').value.trim();
+            const qty = parseInt(document.getElementById('toy-qty').value);
+            if (!shopName || !toyName || isNaN(qty) || qty <= 0) { alert('請完整填寫店家、玩具名稱與正確數量！'); return; }
+            gameState.orders.push({ id: 'o_' + Date.now(), shopName: shopName, toyName: toyName, total: qty, current: 0 });
+            renderOrders(); saveGame();
+            document.getElementById('shop-name').value = ''; document.getElementById('toy-name').value = ''; document.getElementById('toy-qty').value = 1;
+        }
+
+        function renderOrders() {
+            const listEl = document.getElementById('order-list'); listEl.innerHTML = '';
+            if (gameState.orders.length === 0) { listEl.innerHTML = `<li style="color:#888; text-align:center; padding: 20px;">目前沒有鍛造訂單，快在上方接單吧！</li>`; return; }
+            gameState.orders.forEach((order, index) => {
+                const progressPercent = (order.current / order.total) * 100;
+                const li = document.createElement('li'); li.className = 'order-item'; li.draggable = true; li.dataset.index = index;
+                li.innerHTML = `
+                    <div class="order-header"><span>🏪 ${order.shopName} —— 【${order.toyName}】</span><span>${order.current} / ${order.total} 個</span></div>
+                    <div class="order-progress-bg"><div class="order-progress-fill" style="width: ${progressPercent}%"></div></div>
+                    <div class="order-actions">
+                        <div class="move-btn-group">
+                            <button class="btn-move" onclick="moveOrder(${index}, -1)">▲</button>
+                            <button class="btn-move" onclick="moveOrder(${index}, 1)">▼</button>
+                        </div>
+                        <button class="btn-success" onclick="produceToy('${order.id}', event)">🔨 做完 1 個</button>
+                        <button class="btn-danger" onclick="deleteOrder('${order.id}')">放棄訂單</button>
+                    </div>`;
+                listEl.appendChild(li);
+            });
+            setupDragAndDrop('order-list', (newIndices) => {
+                gameState.orders = newIndices.map(i => gameState.orders[i]);
+                saveGame(); renderOrders();
+            });
+        }
+
+        function produceToy(id, event) {
+            const order = gameState.orders.find(o => o.id === id);
+            if (order) {
+                order.current++;
+                gameState.gold += 5; gameState.xp += 5;
+                showFloatingText(`🔨 製作成功! 🪙+5`, event.clientX, event.clientY);
+                if (order.current >= order.total) {
+                    const bigGold = order.total * 10 + 50; const bigXp = order.total * 8 + 40;
+                    gameState.gold += bigGold; gameState.xp += bigXp;
+                    alert(`🎉 大成功！您完成了【${order.shopName}】的【${order.toyName}】全部大訂單！`);
+                    logAchievement(`🏆 交付訂單大成功：${order.shopName} - ${order.toyName} (${order.total}個)`, 'order_complete', null, bigGold, bigXp);
+                    gameState.orders = gameState.orders.filter(o => o.id !== id);
+                }
+                updateUI(); renderOrders(); saveGame();
+            }
+        }
+
+        function deleteOrder(id) { if (confirm('確定要放棄這筆訂單嗎？')) { gameState.orders = gameState.orders.filter(o => o.id !== id); renderOrders(); saveGame(); } }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid'); grid.innerHTML = '';
+            const year = currentCalendarDate.getFullYear(); const month = currentCalendarDate.getMonth();
+            document.getElementById('calendar-month-year').innerText = `🗓️ 冒險日誌月曆 (${year}年 ${month + 1}月)`;
+            ['日', '一', '二', '三', '四', '五', '六'].forEach(day => { const el = document.createElement('div'); el.className = 'weekday'; el.innerText = day; grid.appendChild(el); });
+            const firstDayIndex = new Date(year, month, 1).getDay(); const totalDays = new Date(year, month + 1, 0).getDate(); const todayStr = getTodayString();
+            for (let i = 0; i < firstDayIndex; i++) { grid.appendChild(document.createElement('div')); }
+            for (let dayNum = 1; dayNum <= totalDays; dayNum++) {
+                const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+                const planForDay = (gameState.dailyPlans || {})[dateKey];
+                const hasPlan = !!planForDay;
+                const isDone = hasPlan && planForDay.status === 'done';
+                const dayEl = document.createElement('div');
+                dayEl.className = `day ${dateKey === todayStr ? 'today' : ''} ${hasPlan ? 'has-plan' : ''} ${isDone ? 'plan-done' : ''} ${dateKey === selectedCalendarDateStr ? 'selected-day' : ''}`;
+                dayEl.onclick = () => { selectedCalendarDateStr = dateKey; renderCalendar(); showLogDetail(dateKey); };
+                let badges = '';
+                if (gameState.historyLogs[dateKey]) {
+                    const dailies = gameState.historyLogs[dateKey].filter(l => l.text.includes('⚔️')).length;
+                    const bigOrders = gameState.historyLogs[dateKey].filter(l => l.text.includes('🏆')).length;
+                    const buys = gameState.historyLogs[dateKey].filter(l => l.text.includes('🛒')).length;
+                    const timers = gameState.historyLogs[dateKey].filter(l => l.text.includes('⏱️')).length;
+                    if (dailies > 0) badges += `🟢×${dailies} `;
+                    if (bigOrders > 0) badges += `🏆×${bigOrders} `;
+                    if (timers > 0) badges += `⏱️×${timers} `;
+                    if (buys > 0) badges += `🛒×${buys} `;
+                }
+                if (hasPlan) badges += isDone ? '✅ 已完成' : '📝 計畫';
+                const moodForDay = (gameState.moodRecords || {})[dateKey];
+                if (moodForDay) badges += ` ${moodForDay.emoji || '💛'} 心情`;
+                dayEl.innerHTML = `<div class="day-num">${dayNum}</div><div class="day-badges">${badges}</div>`;
+                grid.appendChild(dayEl);
+            }
+        }
+
+        function changeMonth(direction) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction); renderCalendar(); renderMoodDashboard(); }
+        
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[ch]));
+        }
+
+        function showLogDetail(dateKey) {
+            const logBox = document.getElementById('log-box');
+            const logs = gameState.historyLogs[dateKey] || [];
+            const plan = (gameState.dailyPlans || {})[dateKey];
+            let html = `<h3>📜 ${dateKey} 的冒險日誌</h3>`;
+
+            if (plan) {
+                const planStatus = plan.status || 'planned';
+                const statusLabel = planStatus === 'done' ? '✅ 已完成' : (planStatus === 'progress' ? '🟡 進行中' : '📝 已規劃');
+                html += `<section class="saved-plan-detail">
+                    <h3>📝 每日抗焦慮計畫與時間軸</h3>
+                    <div class="plan-status-row">
+                        <span class="plan-status-pill ${escapeHtml(planStatus)}">${statusLabel}</span>
+                        <button type="button" onclick="setPlanStatus('${dateKey}','planned')">📝 已規劃</button>
+                        <button type="button" onclick="setPlanStatus('${dateKey}','progress')">🟡 進行中</button>
+                        <button type="button" onclick="setPlanStatus('${dateKey}','done')">✅ 標記完成</button>
+                        <button type="button" class="btn-danger" onclick="deleteDailyPlan('${dateKey}')">🗑️ 刪除此日計畫</button>
+                    </div>
+                    <div class="saved-plan-grid">
+                        <div><strong>🔥 今日核心</strong><p>${escapeHtml(plan.core || '尚未填寫')}</p></div>
+                        <div><strong>⚡ 次要任務</strong><p>${escapeHtml(plan.secondary || '尚未填寫')}</p></div>
+                        <div><strong>🌱 微小勝仗</strong><p>${escapeHtml(plan.minor || '尚未填寫')}</p></div>
+                    </div>
+                    <h4>⏰ 當日時間軸</h4>
+                    ${[
+                        ['09:00 - 09:30', plan.sch1], ['09:30 - 11:30', plan.sch2],
+                        ['11:30 - 12:00', plan.sch3], ['12:00 - 14:30', plan.sch4],
+                        ['14:30 - 18:00', plan.sch5], ['18:00 之後', plan.sch6]
+                    ].map(([time, activity]) => `<div class="saved-schedule-row"><strong>${time}</strong><span>${escapeHtml(activity || '尚未安排')}</span></div>`).join('')}
+                    ${plan.note ? `<h4>📌 備註</h4><p class="plan-note">${escapeHtml(plan.note)}</p>` : ''}
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+                        <button type="button" onclick="loadDailyPlanForDate('${dateKey}')">✏️ 載入此日計畫以編輯</button>
+                        <button type="button" onclick="exportSinglePlan('${dateKey}')">📄 匯出這一天</button>
+                    </div>
+                </section>`;
+            } else {
+                html += `<p style="color:#888;">這一天尚未儲存每日抗焦慮計畫。</p>`;
+            }
+
+            const mood = (gameState.moodRecords || {})[dateKey];
+            if (mood) {
+                html += `<section class="v2-panel"><h3>💛 ${dateKey} 的私人心情紀錄</h3><p><strong>${escapeHtml(mood.emoji || '💛')} ${escapeHtml(mood.mood || '未分類')}</strong>　${escapeHtml(mood.score || '')}/5 分</p><p>原因：${escapeHtml(mood.cause || '未填寫')}</p>${mood.note ? `<p>備註：${escapeHtml(mood.note)}</p>` : ''}<button type="button" onclick="editMoodRecord('${dateKey}')">✏️ 載入心情紀錄</button></section>`;
+            }
+
+            const dayOrders = (gameState.supplierOrders || []).filter(o => o.date === dateKey);
+            html += `<section class="v2-panel" style="margin-top:16px"><h3>📦 ${dateKey} 的廠商訂單（${dayOrders.length}）</h3>`;
+            if (dayOrders.length) {
+                dayOrders.forEach(o => { html += `<div class="saved-plan-detail" style="margin:8px 0"><strong>${escapeHtml(o.supplier)}${o.orderNo ? '｜單號：'+escapeHtml(o.orderNo) : ''}</strong><p>狀態：${escapeHtml(o.status || '待確認')}</p>${o.items ? `<p style="white-space:pre-wrap">${escapeHtml(o.items)}</p>` : ''}${o.note ? `<p>備忘：${escapeHtml(o.note)}</p>` : ''}${o.imageData ? `<img src="${o.imageData}" alt="訂單附件" style="max-width:100%;max-height:320px;object-fit:contain;border:1px solid #ddd;border-radius:8px">` : ''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" onclick="editSupplierOrder('${o.id}')">✏️ 編輯訂單</button><button type="button" onclick="exportSupplierOrderImage('${o.id}')" ${o.imageData ? '' : 'disabled'}>⬇️ 下載原圖</button></div></div>`; });
+            } else { html += `<p style="color:#888">當天沒有廠商訂單。可在上方「廠商訂單紀錄」新增。</p>`; }
+            html += `</section>`;
+
+            html += `<h3 style="margin-top:20px;">🏆 工坊成就紀錄</h3>`;
+            if (logs.length === 0) {
+                html += `<p style="color:#888;">這天沒有其他冒險成就紀錄。</p>`;
+            } else {
+                html += '<ul class="log-list">';
+                logs.forEach(log => {
+                    html += `<li class="log-item"><button class="btn-undo-minus" title="點擊撤銷此項目" onclick="undoLogItem('${dateKey}', '${log.id}')">➖</button><div>${escapeHtml(log.text)}</div></li>`;
+                });
+                html += '</ul>';
+            }
+            logBox.innerHTML = html;
+        }
+
+        function loadDailyPlanForDate(dateKey) {
+            const plan = (gameState.dailyPlans || {})[dateKey];
+            if (!plan) return;
+            document.getElementById('plan-core').value = plan.core || '';
+            document.getElementById('plan-secondary').value = plan.secondary || '';
+            document.getElementById('plan-minor').value = plan.minor || '';
+            ['sch1','sch2','sch3','sch4','sch5','sch6'].forEach((key, i) => {
+                document.getElementById(`sch-${i + 1}`).value = plan[key] || '';
+            });
+            window.dailyPlanEditingDate = dateKey;
+            document.querySelector('button[onclick="saveDailyPlan()"]').textContent = `💾 儲存 ${dateKey} 計畫`;
+            document.getElementById('plan-core').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+
+        function goToToday() {
+            const today = getTodayString();
+            currentCalendarDate = new Date();
+            selectedCalendarDateStr = today;
+            renderCalendar();
+            renderMoodDashboard();
+            showLogDetail(today);
+        }
+
+        function setPlanStatus(dateKey, status) {
+            const plan = (gameState.dailyPlans || {})[dateKey];
+            if (!plan) return;
+            plan.status = status;
+            saveGame();
+            renderCalendar();
+            showLogDetail(dateKey);
+            renderStreakDashboard();
+        }
+
+        function deleteDailyPlan(dateKey) {
+            if (!gameState.dailyPlans || !gameState.dailyPlans[dateKey]) return;
+            if (!confirm(`確定刪除 ${dateKey} 的每日計畫嗎？此操作無法復原，建議先備份資料。`)) return;
+            delete gameState.dailyPlans[dateKey];
+            saveGame();
+            renderCalendar();
+            showLogDetail(dateKey);
+            renderStreakDashboard();
+        }
+
+        function downloadTextFile(filename, text, mimeType = 'application/json;charset=utf-8') {
+            const blob = new Blob([text], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportBackup() {
+            const payload = {
+                app: '冒險工坊資料備份',
+                version: 2,
+                exportedAt: new Date().toISOString(),
+                gameState
+            };
+            downloadTextFile(`冒險工坊備份_${getTodayString()}.json`, JSON.stringify(payload, null, 2));
+            alert('備份檔已準備下載。請妥善保存 JSON 檔；換電腦或清除瀏覽器資料前，請先備份。');
+        }
+
+        function importBackup(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const parsed = JSON.parse(reader.result);
+                    const restored = parsed && parsed.gameState ? parsed.gameState : parsed;
+                    if (!restored || typeof restored !== 'object' || Array.isArray(restored)) throw new Error('格式不正確');
+                    if (!confirm('還原資料會覆蓋目前這個瀏覽器中的遊戲資料。建議先下載目前資料備份。確定繼續嗎？')) {
+                        event.target.value = ''; return;
+                    }
+                    gameState = restored;
+                    gameState.dailySubtasks ||= {};
+                    gameState.customTasks ||= [];
+                    gameState.taskOrder ||= [];
+                    gameState.futurePlans ||= [];
+                    gameState.shopItems ||= [...defaultShopItems];
+                    gameState.timers ||= [];
+                    gameState.historyLogs ||= {};
+                    gameState.dailyPlans ||= {};
+                    gameState.moodRecords ||= {};
+                    gameState.supplierOrders ||= [];
+                    gameState.orders ||= [];
+                    gameState.pointsShopItems ||= [...defaultPointsShopItems];
+                    gameState.pointsRedemptionHistory ||= [];
+                    gameState.adventurePointAwards ||= {};
+                    gameState.gold ??= 0; gameState.xp ??= 0; gameState.level ??= 1;
+                    saveGame();
+                    alert('資料還原成功！頁面將重新載入以更新所有畫面。');
+                    location.reload();
+                } catch (error) {
+                    alert('無法還原此檔案：請確認它是本程式匯出的 JSON 備份檔。');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file, 'utf-8');
+        }
+
+        function exportSinglePlan(dateKey) {
+            const plan = (gameState.dailyPlans || {})[dateKey];
+            if (!plan) return alert('這一天沒有已儲存的計畫。');
+            downloadTextFile(`每日計畫_${dateKey}.json`, JSON.stringify({ date: dateKey, plan }, null, 2));
+        }
+
+        function exportMonthlyPlans() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
+            const plans = Object.entries(gameState.dailyPlans || {})
+                .filter(([dateKey]) => dateKey.startsWith(prefix))
+                .sort(([a], [b]) => a.localeCompare(b));
+            if (!plans.length) return alert('本月還沒有儲存任何每日計畫。');
+            const lines = [`${year}年${month + 1}月 每日抗焦慮計畫`, ''];
+            plans.forEach(([dateKey, p]) => {
+                const status = p.status === 'done' ? '已完成' : (p.status === 'progress' ? '進行中' : '已規劃');
+                lines.push(`【${dateKey}｜${status}】`);
+                lines.push(`今日核心：${p.core || '尚未填寫'}`);
+                lines.push(`次要任務：${p.secondary || '尚未填寫'}`);
+                lines.push(`微小勝仗：${p.minor || '尚未填寫'}`);
+                lines.push('時間軸：');
+                [['09:00-09:30',p.sch1],['09:30-11:30',p.sch2],['11:30-12:00',p.sch3],['12:00-14:30',p.sch4],['14:30-18:00',p.sch5],['18:00之後',p.sch6]]
+                    .forEach(([time, activity]) => lines.push(`  ${time}：${activity || '尚未安排'}`));
+                if (p.note) lines.push(`備註：${p.note}`);
+                lines.push('');
+            });
+            downloadTextFile(`每日計畫_${year}-${String(month+1).padStart(2,'0')}.txt`, lines.join('\n'), 'text/plain;charset=utf-8');
+        }
+
+
+        /* 冒險工坊 2.0：心情紀錄（本機儲存） */
+        const moodChoices = [
+            {name:'平靜',emoji:'😌'}, {name:'焦慮',emoji:'😟'}, {name:'低落',emoji:'😔'},
+            {name:'煩躁',emoji:'😣'}, {name:'開心',emoji:'😊'}, {name:'疲憊',emoji:'😴'},
+            {name:'孤單',emoji:'🥺'}, {name:'有希望',emoji:'🌈'}, {name:'不確定',emoji:'🤔'}, {name:'感恩',emoji:'🙏'}
+        ];
+        let selectedMood = '';
+        let moodEditingDate = '';
+        function initMoodForm() {
+            const host = document.getElementById('mood-options');
+            if (!host) return;
+            host.innerHTML = moodChoices.map(m => `<button type="button" class="mood-option" data-mood="${m.name}" onclick="selectMood('${m.name}')"><span>${m.emoji}</span>${m.name}</button>`).join('');
+            moodEditingDate = getTodayString();
+            updateMoodSaveButton();
+            const existing = (gameState.moodRecords || {})[moodEditingDate];
+            if (existing) fillMoodForm(existing); else selectMood('平靜');
+        }
+        function selectMood(name) {
+            selectedMood = name;
+            document.querySelectorAll('.mood-option').forEach(el => el.classList.toggle('selected', el.dataset.mood === name));
+        }
+        function fillMoodForm(record) {
+            selectMood(record.mood || '平靜');
+            document.getElementById('mood-score').value = String(record.score || 3);
+            document.getElementById('mood-cause').value = record.cause || '未確定';
+            document.getElementById('mood-note').value = record.note || '';
+        }
+        function updateMoodSaveButton() {
+            const btn = document.querySelector('button[onclick="saveMoodRecord()"]');
+            if (btn) btn.textContent = `💾 儲存 ${moodEditingDate || getTodayString()} 心情`;
+        }
+        function saveMoodRecord() {
+            const targetDate = moodEditingDate || getTodayString();
+            if (!selectedMood) return alert('請先選擇心情。');
+            const existing = (gameState.moodRecords || {})[targetDate];
+            if (existing && !confirm(`${targetDate} 已經有一筆心情紀錄。要以目前內容更新這筆紀錄嗎？`)) return;
+            const choice = moodChoices.find(m => m.name === selectedMood);
+            gameState.moodRecords ||= {};
+            gameState.moodRecords[targetDate] = { mood:selectedMood, emoji:choice ? choice.emoji : '💛', score:Number(document.getElementById('mood-score').value), cause:document.getElementById('mood-cause').value, note:document.getElementById('mood-note').value.trim(), updatedAt:new Date().toISOString() };
+            saveGame(); renderCalendar(); renderMoodDashboard(); showLogDetail(selectedCalendarDateStr);
+            alert(`${targetDate} 的心情紀錄已儲存在這個瀏覽器中。`);
+        }
+        function clearMoodForm() { moodEditingDate = getTodayString(); updateMoodSaveButton(); selectMood('平靜'); document.getElementById('mood-score').value='3'; document.getElementById('mood-cause').value='未確定'; document.getElementById('mood-note').value=''; }
+        function deleteMoodRecord() {
+            const targetDate = moodEditingDate || getTodayString();
+            if (!(gameState.moodRecords || {})[targetDate]) return alert(`${targetDate} 還沒有心情紀錄。`);
+            if (!confirm(`確定刪除 ${targetDate} 的心情紀錄嗎？此操作無法復原。`)) return;
+            delete gameState.moodRecords[targetDate]; saveGame(); clearMoodForm(); renderCalendar(); renderMoodDashboard(); showLogDetail(selectedCalendarDateStr);
+        }
+        function editMoodRecord(dateKey) {
+            const record = (gameState.moodRecords || {})[dateKey]; if (!record) return;
+            moodEditingDate = dateKey; updateMoodSaveButton(); fillMoodForm(record);
+            document.getElementById('mood-note').scrollIntoView({behavior:'smooth',block:'center'});
+        }
+        function renderMoodDashboard() {
+            const records = gameState.moodRecords || {};
+            const year = currentCalendarDate.getFullYear(), month = currentCalendarDate.getMonth();
+            const prefix = `${year}-${String(month+1).padStart(2,'0')}-`;
+            const monthRecords = Object.entries(records).filter(([d])=>d.startsWith(prefix)).sort(([a],[b])=>b.localeCompare(a));
+            const title = document.getElementById('mood-month-title'); if (title) title.textContent = `📊 ${year}年${month+1}月心情回顧`;
+            const scores = monthRecords.map(([,r])=>Number(r.score)).filter(n=>n>=1&&n<=5);
+            const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—';
+            const low = monthRecords.filter(([,r])=>Number(r.score)<=2).length;
+            document.getElementById('mood-month-stats').innerHTML = `<div class="v2-stat"><span>紀錄天數</span><strong>${monthRecords.length}</strong></div><div class="v2-stat"><span>平均分數</span><strong>${avg}${scores.length?' / 5':''}</strong></div><div class="v2-stat"><span>低分日（1–2分）</span><strong>${low}</strong></div>`;
+            const list = document.getElementById('mood-diary-list');
+            list.innerHTML = monthRecords.length ? monthRecords.map(([d,r])=>`<div class="v2-record"><strong>${d}　${escapeHtml(r.emoji||'💛')} ${escapeHtml(r.mood||'')}</strong>　${escapeHtml(r.score||'')}/5<p class="v2-muted">原因：${escapeHtml(r.cause||'未填寫')}${r.note ? '｜'+escapeHtml(r.note) : ''}</p><button type="button" onclick="selectCalendarDate('${d}')">在月曆查看</button></div>`).join('') : '<p class="v2-muted">本月還沒有心情紀錄。您可以從今天開始，不必補記過去。</p>';
+            const todayRecord = records[getTodayString()];
+            const support = document.getElementById('mood-support');
+            if (todayRecord && (todayRecord.mood === '低落' || Number(todayRecord.score) <= 2)) {
+                support.style.display = 'block';
+                support.innerHTML = `<strong>🌷 給現在的你</strong><p>你不需要立刻振作，也不必把所有事情一次解決。能注意到自己的感受，已經是一件值得肯定的事。</p><p><strong>一個小行動：</strong>喝幾口水、把肩膀放鬆，或只花兩分鐘整理眼前的一小步。選一件最容易的就好。</p>`;
+            } else { support.style.display='none'; support.innerHTML=''; }
+        }
+        function selectCalendarDate(dateKey) {
+            selectedCalendarDateStr = dateKey;
+            const parts = dateKey.split('-').map(Number); currentCalendarDate = new Date(parts[0],parts[1]-1,1);
+            renderCalendar(); renderMoodDashboard(); showLogDetail(dateKey);
+            document.getElementById('calendar-grid').scrollIntoView({behavior:'smooth',block:'start'});
+        }
+
+        /* 完成天數與徽章：僅計算 status === done 的每日計畫 */
+        function getCompletionStats() {
+            const plans = gameState.dailyPlans || {};
+            const completed = Object.keys(plans).filter(d => plans[d] && plans[d].status === 'done').sort();
+            let best = 0, run = 0, prev = null;
+            for (const d of completed) {
+                const date = new Date(d+'T12:00:00');
+                const next = prev ? new Date(prev+'T12:00:00') : null;
+                run = next && (date-next) === 86400000 ? run+1 : 1;
+                best = Math.max(best,run); prev = d;
+            }
+            let current = 0; const today = getTodayString();
+            if (plans[today] && plans[today].status === 'done') {
+                let cursor = new Date(today+'T12:00:00');
+                while (true) {
+                    const key = `${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}-${String(cursor.getDate()).padStart(2,'0')}`;
+                    if (!plans[key] || plans[key].status !== 'done') break;
+                    current++; cursor.setDate(cursor.getDate()-1);
+                }
+            }
+            return {total:completed.length,best,current};
+        }
+        // 冒險點數採獨立可花餘額；每個細項 ID 只發放一次，消費不影響金幣。
+        function getAdventurePoints() { return Math.max(0, Number(gameState.adventurePointsBalance) || 0); }
+        function getAdventurePointsEarned() { return Math.max(0, Number(gameState.adventurePointsEarned) || 0); }
+
+        function awardAdventurePoint(taskId, subId) {
+            gameState.adventurePointAwards ||= {};
+            const key = `${taskId}::${subId}`;
+            if (gameState.adventurePointAwards[key]) return false;
+            gameState.adventurePointAwards[key] = {taskId, subId, awardedAt:new Date().toISOString()};
+            gameState.adventurePointsBalance = getAdventurePoints() + 1;
+            gameState.adventurePointsEarned = getAdventurePointsEarned() + 1;
+            return true;
+        }
+
+        function renderStreakDashboard() {
+            const stats = getCompletionStats();
+            const points = getAdventurePoints();
+            document.getElementById('streak-dashboard').innerHTML = `<div class="v2-stat"><span>🧭 可用冒險點數</span><strong>${points} 點</strong></div><div class="v2-stat"><span>累計獲得點數</span><strong>${getAdventurePointsEarned()} 點</strong></div><div class="v2-stat"><span>目前連續完成</span><strong>${stats.current} 天</strong></div><div class="v2-stat"><span>歷史最佳</span><strong>${stats.best} 天</strong></div><div class="v2-stat"><span>累計完成計畫</span><strong>${stats.total} 天</strong></div>`;
+            const badges = [
+                {id:'points_10',name:'初階冒險家',desc:'累積獲得 10 點冒險點數',threshold:10,emoji:'🌱'},
+                {id:'points_25',name:'任務達人',desc:'累積獲得 25 點冒險點數',threshold:25,emoji:'🥉'},
+                {id:'points_50',name:'傳奇工匠',desc:'累積獲得 50 點冒險點數',threshold:50,emoji:'🏅'},
+                {id:'points_100',name:'百項旅人',desc:'累積獲得 100 點冒險點數',threshold:100,emoji:'🏆'}
+            ];
+            const claimed = gameState.claimedAdventureBadges || {};
+            document.getElementById('badge-dashboard').innerHTML = badges.map(b => {
+                const eligible = getAdventurePointsEarned() >= b.threshold;
+                const hasClaimed = !!claimed[b.id];
+                const action = hasClaimed ? '<div>✅ 已領取</div>' : (eligible ? `<button type="button" onclick="claimAdventureBadge('${b.id}')">🎁 手動領取</button>` : `<div>🔒 尚需 ${b.threshold - getAdventurePointsEarned()} 點</div>`);
+                return `<div class="v2-badge ${eligible ? '' : 'locked'}">${b.emoji} <strong>${b.name}</strong><div class="v2-muted">${b.desc}</div>${action}</div>`;
+            }).join('');
+            renderPointsShop();
+        }
+
+        function renderPointsShop() {
+            if (!Array.isArray(gameState.pointsShopItems)) gameState.pointsShopItems = [...defaultPointsShopItems];
+            if (!Array.isArray(gameState.pointsRedemptionHistory)) gameState.pointsRedemptionHistory = [];
+            const balanceEl = document.getElementById('points-shop-balance');
+            if (balanceEl) balanceEl.innerHTML = `<div class="v2-stat"><span>🧭 可用冒險點數</span><strong>${getAdventurePoints()} 點</strong></div><div class="v2-stat"><span>🏅 累計獲得</span><strong>${getAdventurePointsEarned()} 點</strong></div><div class="v2-stat"><span>🎁 兌換次數</span><strong>${gameState.pointsRedemptionHistory.length} 次</strong></div>`;
+            const list = document.getElementById('points-shop-list');
+            if (list) {
+                list.innerHTML = gameState.pointsShopItems.length ? gameState.pointsShopItems.map(item => `<li class="points-shop-item"><div><strong>🎁 ${escapeHtml(item.text)}</strong><div class="points-cost">⭐ ${Number(item.cost)} 點</div></div><div class="points-shop-actions"><button type="button" onclick="redeemPointsShopItem('${item.id}')" ${getAdventurePoints() < Number(item.cost) ? 'disabled' : ''}>兌換</button><button type="button" class="btn-cancel" onclick="deletePointsShopItem('${item.id}')">下架</button></div></li>`).join('') : '<li class="v2-muted">目前沒有商品，您可以新增想兌換的獎勵。</li>';
+            }
+            const history = document.getElementById('points-redemption-history');
+            if (history) {
+                const records = [...gameState.pointsRedemptionHistory].reverse();
+                history.innerHTML = records.length ? records.map(r => `<li class="points-history-item"><div><strong>${escapeHtml(r.itemText || '冒險獎勵')}</strong><div class="v2-muted">${escapeHtml(new Date(r.redeemedAt).toLocaleString())}</div></div><strong class="points-cost">-${Number(r.cost)} 點</strong></li>`).join('') : '<li class="v2-muted">尚無兌換紀錄。</li>';
+            }
+        }
+
+        function addPointsShopItem() {
+            const nameEl = document.getElementById('points-shop-item-input');
+            const costEl = document.getElementById('points-shop-cost-input');
+            const text = nameEl.value.trim(); const cost = Number.parseInt(costEl.value, 10);
+            if (!text || !Number.isFinite(cost) || cost <= 0) return alert('請輸入商品名稱與大於 0 的點數價格。');
+            gameState.pointsShopItems ||= [];
+            gameState.pointsShopItems.push({id:'ps_' + Date.now(), text, cost});
+            nameEl.value = ''; costEl.value = '';
+            saveGame(); renderPointsShop();
+        }
+
+        function redeemPointsShopItem(id) {
+            const item = (gameState.pointsShopItems || []).find(p => p.id === id);
+            if (!item) return;
+            const cost = Number(item.cost);
+            if (!Number.isFinite(cost) || cost <= 0) return alert('商品點數價格無效，請先修正商品。');
+            if (getAdventurePoints() < cost) return alert(`冒險點數不足！需要 ${cost} 點，目前有 ${getAdventurePoints()} 點。`);
+            if (!confirm(`確認使用 ${cost} 點冒險點數兌換「${item.text}」嗎？
+原有金幣不會受到影響。`)) return;
+            // 同步更新餘額並寫入兌換紀錄；每次兌換都會留下獨立紀錄。
+            gameState.adventurePointsBalance = getAdventurePoints() - cost;
+            gameState.pointsRedemptionHistory ||= [];
+            gameState.pointsRedemptionHistory.push({id:'redemption_' + Date.now(), itemId:item.id, itemText:item.text, cost, redeemedAt:new Date().toISOString()});
+            saveGame(); renderStreakDashboard(); renderPointsShop();
+            alert(`🎉 已兌換「${item.text}」，扣除 ${cost} 點冒險點數。`);
+        }
+
+        function deletePointsShopItem(id) {
+            if (!confirm('確定要將這項冒險點數商品下架嗎？既有兌換紀錄會保留。')) return;
+            gameState.pointsShopItems = (gameState.pointsShopItems || []).filter(item => item.id !== id);
+            saveGame(); renderPointsShop();
+        }
+
+        function claimAdventureBadge(badgeId) {
+            const badges = {
+                points_10: {name:'初階冒險家', threshold:10},
+                points_25: {name:'任務達人', threshold:25},
+                points_50: {name:'傳奇工匠', threshold:50},
+                points_100: {name:'百項旅人', threshold:100}
+            };
+            const badge = badges[badgeId];
+            if (!badge) return;
+            gameState.claimedAdventureBadges ||= {};
+            if (gameState.claimedAdventureBadges[badgeId]) return alert('這枚勳章已經領取過了，不會重複領取。');
+            if (getAdventurePointsEarned() < badge.threshold) return alert(`尚未達到領取條件：需要累計獲得 ${badge.threshold} 點冒險點數。`);
+            if (!confirm(`確認領取「${badge.name}」勳章嗎？`)) return;
+            gameState.claimedAdventureBadges[badgeId] = {claimedAt: new Date().toISOString()};
+            saveGame();
+            renderStreakDashboard();
+            alert(`🎉 已領取「${badge.name}」勳章！`);
+        }
+
+        let supplierOrderEditingId = null;
+        let supplierOrderImageData = '';
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.id === 'supplier-order-image') {
+                const file = e.target.files && e.target.files[0]; if (!file) return;
+                if (!file.type.startsWith('image/')) { alert('請選擇圖片檔案。'); e.target.value=''; return; }
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const max = 1400, scale = Math.min(1, max / Math.max(img.width, img.height));
+                        const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.width * scale)); canvas.height = Math.max(1, Math.round(img.height * scale));
+                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                        supplierOrderImageData = canvas.toDataURL('image/jpeg', 0.78);
+                        document.getElementById('supplier-order-image-preview').innerHTML = `<img src="${supplierOrderImageData}" alt="訂單圖片預覽" style="max-width:100%;max-height:180px;border:1px solid #ddd;border-radius:8px"><p><button type="button" onclick="clearSupplierOrderImage()">移除圖片</button></p>`;
+                    };
+                    img.onerror = () => alert('無法讀取這張圖片，請改用 JPG 或 PNG。'); img.src = reader.result;
+                }; reader.readAsDataURL(file);
+            }
+        });
+        function clearSupplierOrderImage() { supplierOrderImageData = ''; const input=document.getElementById('supplier-order-image'); if(input) input.value=''; const preview=document.getElementById('supplier-order-image-preview'); if(preview) preview.innerHTML=''; }
+        function clearSupplierOrderForm() {
+            supplierOrderEditingId = null;
+            ['supplier-order-name','supplier-order-number','supplier-order-items','supplier-order-note'].forEach(id => document.getElementById(id).value='');
+            document.getElementById('supplier-order-date').value = getTodayString(); document.getElementById('supplier-order-status').value='待確認'; clearSupplierOrderImage();
+            const btn = document.querySelector('#supplier-orders-section button[onclick="saveSupplierOrder()"]'); if(btn) btn.textContent='💾 儲存廠商訂單';
+        }
+        function saveSupplierOrder() {
+            const supplier = document.getElementById('supplier-order-name').value.trim();
+            const date = document.getElementById('supplier-order-date').value || getTodayString();
+            if (!supplier) { alert('請先填寫廠商名稱。'); document.getElementById('supplier-order-name').focus(); return; }
+            gameState.supplierOrders ||= [];
+            const old = supplierOrderEditingId ? gameState.supplierOrders.find(o => o.id === supplierOrderEditingId) : null;
+            const order = { id: old ? old.id : 'supplier_' + Date.now() + '_' + Math.random().toString(36).slice(2,7), date, supplier, orderNo:document.getElementById('supplier-order-number').value.trim(), status:document.getElementById('supplier-order-status').value, items:document.getElementById('supplier-order-items').value.trim(), note:document.getElementById('supplier-order-note').value.trim(), imageData:supplierOrderImageData || (old ? old.imageData || '' : ''), createdAt:old ? old.createdAt : new Date().toISOString(), updatedAt:new Date().toISOString() };
+            if (old) gameState.supplierOrders = gameState.supplierOrders.map(o => o.id === old.id ? order : o); else gameState.supplierOrders.unshift(order);
+            saveGame(); renderSupplierOrders(); clearSupplierOrderForm(); selectedCalendarDateStr = date; showLogDetail(date); renderCalendar(); alert('廠商訂單已儲存，並已連結至該日期的冒險日誌。');
+        }
+        function editSupplierOrder(id) {
+            const o = (gameState.supplierOrders || []).find(x => x.id === id); if (!o) return;
+            supplierOrderEditingId = id; document.getElementById('supplier-order-date').value=o.date || getTodayString(); document.getElementById('supplier-order-name').value=o.supplier || ''; document.getElementById('supplier-order-number').value=o.orderNo || ''; document.getElementById('supplier-order-status').value=o.status || '待確認'; document.getElementById('supplier-order-items').value=o.items || ''; document.getElementById('supplier-order-note').value=o.note || ''; supplierOrderImageData=o.imageData || '';
+            document.getElementById('supplier-order-image-preview').innerHTML = supplierOrderImageData ? `<img src="${supplierOrderImageData}" alt="訂單圖片預覽" style="max-width:100%;max-height:180px;border:1px solid #ddd;border-radius:8px"><p><button type="button" onclick="clearSupplierOrderImage()">移除圖片</button></p>` : '';
+            const btn = document.querySelector('#supplier-orders-section button[onclick="saveSupplierOrder()"]'); if(btn) btn.textContent='💾 儲存訂單修改'; document.getElementById('supplier-orders-section').scrollIntoView({behavior:'smooth',block:'start'});
+        }
+        function deleteSupplierOrder(id) { const o=(gameState.supplierOrders||[]).find(x=>x.id===id); if(!o || !confirm(`確定刪除「${o.supplier}」的這筆訂單嗎？`)) return; gameState.supplierOrders=gameState.supplierOrders.filter(x=>x.id!==id); saveGame(); renderSupplierOrders(); showLogDetail(selectedCalendarDateStr); }
+        function exportSupplierOrderImage(id) { const o=(gameState.supplierOrders||[]).find(x=>x.id===id); if(!o || !o.imageData) return; const a=document.createElement('a'); a.href=o.imageData; a.download=`訂單_${o.date}_${(o.supplier||'廠商').replace(/[\\/:*?"<>|]/g,'_')}.jpg`; document.body.appendChild(a); a.click(); a.remove(); }
+        function renderSupplierOrders() {
+            const target=document.getElementById('supplier-orders-list'); if(!target) return;
+            const q=(document.getElementById('supplier-order-search')?.value || '').trim().toLowerCase(); const filter=document.getElementById('supplier-order-filter')?.value || '';
+            const list=(gameState.supplierOrders||[]).filter(o => (!filter || o.status===filter) && (!q || [o.supplier,o.orderNo,o.items,o.note,o.date].some(v=>String(v||'').toLowerCase().includes(q)))).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+            if(!list.length) { target.innerHTML='<p style="color:#888">目前沒有符合條件的廠商訂單。</p>'; return; }
+            target.innerHTML=list.map(o=>`<article class="saved-plan-detail" style="margin:10px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>📦 ${escapeHtml(o.supplier)} ${o.orderNo ? '｜'+escapeHtml(o.orderNo) : ''}</strong><span>${escapeHtml(o.date||'')}</span></div><p>狀態：<strong>${escapeHtml(o.status||'待確認')}</strong></p>${o.items?`<p style="white-space:pre-wrap">${escapeHtml(o.items)}</p>`:''}${o.note?`<p>備忘：${escapeHtml(o.note)}</p>`:''}${o.imageData?`<img src="${o.imageData}" alt="訂單附件" style="max-width:100%;max-height:220px;object-fit:contain;border:1px solid #ddd;border-radius:8px">`:''}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" onclick="editSupplierOrder('${o.id}')">✏️ 編輯</button><button type="button" onclick="selectedCalendarDateStr='${o.date}';renderCalendar();showLogDetail('${o.date}')">🗓️ 查看工作日誌</button>${o.imageData?`<button type="button" onclick="exportSupplierOrderImage('${o.id}')">⬇️ 下載圖片</button>`:''}<button type="button" class="btn-danger" onclick="deleteSupplierOrder('${o.id}')">🗑️ 刪除</button></div></article>`).join('');
+        }
+
+        function showTodayLog() { showLogDetail(getTodayString()); }
+        
+        function showFloatingText(text, x, y) {
+            const el = document.createElement('div'); el.className = 'floating-text'; el.innerText = text; el.style.left = x + 'px'; el.style.top = y + 'px'; document.body.appendChild(el);
+            setTimeout(() => { el.remove(); }, 1000);
+        }
+
+        function undoLogItem(dateKey, logId) {
+            const logItem = (gameState.historyLogs[dateKey] || []).find(item => item.id === logId);
+            if (!logItem || !confirm(`確定要撤銷或移除此項目嗎？\n\n「${logItem.text}」`)) return;
+
+            gameState.gold -= (logItem.gold || 0);
+            gameState.xp -= (logItem.xp || 0);
+
+            if (logItem.data && logItem.data.taskId) {
+                const { taskId, subId, subDetail } = logItem.data;
+                if (!gameState.dailySubtasks[taskId]) { gameState.dailySubtasks[taskId] = []; }
+                const existingSub = gameState.dailySubtasks[taskId].find(s => s.id === subId);
+                if (existingSub) { existingSub.done = false; }
+            }
+
+            gameState.historyLogs[dateKey] = gameState.historyLogs[dateKey].filter(item => item.id !== logId);
+            saveGame(); updateUI(); renderDailyTasks(); renderCalendar(); showLogDetail(dateKey); updateChallengeIndicator(); renderStreakDashboard(); renderPointsShop();
+        }
+    </script>
+</body>
+</html>
